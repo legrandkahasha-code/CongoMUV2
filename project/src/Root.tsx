@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import App from './App';
-import LoginPage2FA from './pages/LoginPage2FA';
+import LoginPage from './pages/LoginPage';
 import Signup from './pages/Signup.tsx';
 import AdminDashboard from './pages/AdminDashboard';
 import { AdminHQ } from './pages/AdminHQ';
@@ -10,17 +10,33 @@ import { useAuth } from './lib/authContext';
 import LoadingScreen from './components/LoadingScreen';
 
 export default function Root() {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, signOut, refreshProfile } = useAuth();
   const [hash, setHash] = useState<string>(window.location.hash || '');
-  const hasJwt = typeof window !== 'undefined' && !!localStorage.getItem('app_jwt');
-  const rawRole = typeof window !== 'undefined' ? (localStorage.getItem('app_role') || 'USER') : 'USER';
-  const role = rawRole.toUpperCase();
+  const role = (profile?.role || '').toLowerCase();
   const [idleWarnVisible, setIdleWarnVisible] = useState(false);
   const [idleSecondsLeft, setIdleSecondsLeft] = useState(15);
   const timerRef = useRef<number | null>(null);
   const warnTimerRef = useRef<number | null>(null);
   const countdownRef = useRef<number | null>(null);
   const [toasts, setToasts] = useState<Array<{ id: string; type: 'success'|'error'|'info'; title: string; desc?: string }>>([]);
+
+  // 0) Always start clean: clear any persisted auth on first load (one-time guard)
+  useEffect(() => {
+    const w = window as unknown as { __didInitialAuthReset?: boolean };
+    if (w.__didInitialAuthReset) return;
+    w.__didInitialAuthReset = true;
+    try {
+      localStorage.removeItem('app_jwt');
+      localStorage.removeItem('app_role');
+      if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
+    } catch {}
+    (async () => {
+      try {
+        const { supabase } = await import('./lib/supabase');
+        await supabase.auth.signOut();
+      } catch {}
+    })();
+  }, []);
 
   // Fonction utilitaire pour normaliser les rôles
   const normalizeRole = (r: string | undefined): string => {
@@ -43,17 +59,33 @@ export default function Root() {
   // Déterminer la cible de redirection en fonction du rôle (sans logs répétitifs)
   const getTargetForRole = (r: string | undefined): string => {
   const role = normalizeRole(r);
-  if (isSuperAdmin(role)) return '#/admin/dashboard';
+  if (isSuperAdmin(role)) return '#/superadmin';
   if (isAdminRole(role)) return '#/admin';
+  if (role === 'operator') return '#/operator';
   if (role === 'passenger') return '#/passenger';
   return '#';
   };
 
   useEffect(() => {
-    const onHash = () => setHash(window.location.hash || '');
+    const onHash = async () => {
+      setHash(window.location.hash || '');
+      try {
+        if (session && document.visibilityState === 'visible') {
+          await refreshProfile();
+        }
+      } catch {}
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
-  }, []);
+  }, [session, refreshProfile]);
+
+  // Exposer une fonction de déconnexion globale pour les boutons/menu hors du contexte React
+  useEffect(() => {
+    (window as unknown as { __signOut?: () => void }).__signOut = async () => {
+      try { await signOut(); } finally { window.location.hash = '#/'; }
+    };
+    return () => { delete (window as unknown as { __signOut?: () => void }).__signOut; };
+  }, [signOut]);
 
   // Idle timeout: 2 minutes of inactivity -> logout and redirect to login (with 15s warning)
   useEffect(() => {
@@ -71,7 +103,7 @@ export default function Root() {
 
     const triggerLogout = () => {
       clearAuth();
-      window.location.hash = '#/login';
+      window.location.hash = '#/';
       window.location.reload();
     };
 
@@ -142,36 +174,30 @@ export default function Root() {
     };
   }, []);
 
-  // Afficher le loader professionnel pendant le chargement initial
+  // Afficher l'écran de chargement professionnel pendant le chargement initial
   if (loading) {
     return <LoadingScreen />;
   }
-
-  // 1. Si l'URL est vide ou contient juste #, gérer la redirection appropriée
-  if (hash === '#' || hash === '') {
-    if (session || hasJwt) {
-      const targetForRole = getTargetForRole(role);
-      // Vérifier qu'on ne redirige pas vers la même page pour éviter les boucles
-      if (hash !== targetForRole) {
-        window.location.hash = targetForRole;
-      }
-    }
-    // Si l'utilisateur est connecté, retourner le loader pendant la redirection
-    if (session || hasJwt) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
-        </div>
-      );
-    }
-    // Si l'utilisateur n'est pas connecté, continuer vers le rendu de la page d'accueil
+  // Si une session existe mais que le profil/role n'est pas encore chargé, éviter toute redirection/gating
+  if (session && (!profile || !profile.role)) {
+    return <LoadingScreen />;
   }
   
-  // 2. Gestion des redirections après connexion
-  if (session || hasJwt) {
-    // Empêcher l'accès aux pages d'authentification si déjà connecté
-    const authPages = ['#/login', '#/register', '#/forgot-password'];
-    if (authPages.some(page => hash.startsWith(page))) {
+  // 1) If user is on home but still authenticated (race condition), sign out silently and keep home visible
+  if ((hash === '#/' || hash === '' || hash === '#') && session) {
+    (async () => {
+      try {
+        const { supabase } = await import('./lib/supabase');
+        await supabase.auth.signOut();
+      } catch {}
+    })();
+  }
+
+  // Si l'utilisateur est connecté et essaie d'accéder à une page d'authentification,
+  // le rediriger vers son espace de travail. Ne pas rediriger depuis la page d'accueil (#/).
+  if (session && role) {
+    const authPages = ['#/login', '#/signup', '#/register', '#/forgot-password'];
+    if (authPages.includes(hash) || authPages.some(page => hash.startsWith(page))) {
       const targetForRole = getTargetForRole(role);
       if (hash !== targetForRole) {
         window.location.hash = targetForRole;
@@ -182,9 +208,9 @@ export default function Root() {
         );
       }
     }
-  } else {
+  } else if (!session) {
     // Si l'utilisateur n'est pas connecté mais essaie d'accéder à une page protégée
-    const protectedPaths = ['#/admin', '#/dashboard', '#/profile', '#/operator'];
+    const protectedPaths = ['#/admin', '#/dashboard', '#/profile', '#/operator', '#/passenger', '#/driver', '#/superadmin'];
     if (protectedPaths.some(path => hash.startsWith(path))) {
       window.location.hash = '/';
       return null;
@@ -192,7 +218,7 @@ export default function Root() {
   }
 
   // Prevent access to login when already authenticated -> send to role target
-  if (hash.startsWith('#/login') && (session || hasJwt)) {
+  if (hash.startsWith('#/login') && session && role) {
     const targetForRole = getTargetForRole(role);
     window.location.hash = targetForRole;
     return null;
@@ -200,7 +226,7 @@ export default function Root() {
 
   // Routing
   if (hash.startsWith('#/login')) {
-    return <LoginPage2FA />;
+    return <LoginPage />;
   }
 
   if (hash.startsWith('#/signup')) {
@@ -208,30 +234,42 @@ export default function Root() {
   }
 
   if (hash.startsWith('#/admin')) {
-    if (!session && !hasJwt) {
-      location.hash = '#/login';
+    if (!session) {
+      location.hash = '#/';
+      return null;
+    }
+    if (!role) return <LoadingScreen />;
+    if (!isAdminRole(role) && !isSuperAdmin(role)) {
+      location.hash = getTargetForRole(role);
       return null;
     }
     return <AdminDashboard />;
   }
 
   if (hash.startsWith('#/passenger')) {
+    if (!session) { location.hash = '#/'; return null; }
+    if (!role) return <LoadingScreen />;
+    if (normalizeRole(role) !== 'passenger') { location.hash = getTargetForRole(role); return null; }
     return <PassengerApp />;
   }
 
   if (hash.startsWith('#/operator')) {
-    if (!session && !hasJwt) {
-      location.hash = '#/login';
+    if (!session) {
+      location.hash = '#/';
       return null;
     }
+    if (!role) return <LoadingScreen />;
+    if (normalizeRole(role) !== 'operator') { location.hash = getTargetForRole(role); return null; }
     return <OperatorDashboard />;
   }
 
   if (hash.startsWith('#/superadmin')) {
-    if (!session && !hasJwt) {
-      location.hash = '#/login';
+    if (!session) {
+      location.hash = '#/';
       return null;
     }
+    if (!role) return <LoadingScreen />;
+    if (!isSuperAdmin(role)) { location.hash = getTargetForRole(role); return null; }
     return <AdminHQ />;
   }
 
@@ -249,6 +287,18 @@ export default function Root() {
           </div>
         ))}
       </div>
+      {/* Global Logout Button (visible when connected) */}
+      {session && (
+        <div className="fixed top-4 right-4 z-[10000] mt-16">
+          <button
+            onClick={() => (window as unknown as { __signOut?: () => void }).__signOut?.()}
+            className="bg-white/90 hover:bg-white text-slate-700 border border-slate-200 shadow-sm px-3 py-1.5 rounded-lg text-sm"
+            title="Se déconnecter"
+          >
+            Se déconnecter
+          </button>
+        </div>
+      )}
       {idleWarnVisible && (
         <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded-md shadow-md">

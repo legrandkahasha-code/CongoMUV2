@@ -1,48 +1,72 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X, Calendar, MapPin, Clock, Users } from 'lucide-react';
-import TripForm from '../trips/TripForm';
+import { Plus, Trash2, Calendar, MapPin, Clock, Users } from 'lucide-react';
+import { mockTrips, mockOperators, mockVehicles, mockRoutes } from '../../data/mockTrips';
+import { Operator, Vehicle, Route } from '../trips/TripForm.types';
 
 interface Trip {
   id: string;
   route: {
+    id: string;
     departure_city: string;
     arrival_city: string;
+    distance: number;
+    duration: string;
   };
   departure_time: string;
   arrival_time: string;
   vehicle_number: string;
   total_seats: number;
   available_seats: number;
+  price: number;
   status: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface EditingTripForm {
+  id: string;
+  routeId: string;
+  departureDate: Date;
+  departureTime: string;
+  arrivalDate: Date;
+  arrivalTime: string;
+  vehicle_number: string;
+  total_seats: number;
+  available_seats: number;
+  price: number;
+  status: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export function TripsManagement() {
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [editingTrip, setEditingTrip] = useState<EditingTripForm | null>(null);
 
   useEffect(() => {
     loadTrips();
   }, []);
 
-  const loadTrips = async () => {
+  const loadTrips = () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('app_jwt');
-      const resp = await fetch('http://localhost:3002/api/operator/trips', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
-      if (!resp.ok) throw new Error('failed');
-      const json = await resp.json();
-      const items = Array.isArray(json?.data) ? json.data : [];
-      setTrips(items as any);
+      setTrips(
+        mockTrips.map(trip => ({
+          ...trip,
+          route:
+            mockRoutes.find(r => r.id === trip.route.id) || {
+              id: 'unknown',
+              departure_city: 'Inconnu',
+              arrival_city: 'Inconnu',
+              distance: 0,
+              duration: '0h',
+            },
+        }))
+      );
     } catch (error) {
       console.error('Erreur chargement trajets:', error);
-      // fallback doux si API indisponible
       setTrips([]);
     } finally {
       setLoading(false);
@@ -50,55 +74,76 @@ export function TripsManagement() {
   };
 
   const handleEdit = (trip: Trip) => {
-    setEditingTrip(trip);
+    const departureDate = new Date(trip.departure_time);
+    const arrivalDate = new Date(trip.arrival_time);
+
+    const formData: EditingTripForm = {
+      id: trip.id,
+      routeId: trip.route.id,
+      departureDate,
+      departureTime: `${String(departureDate.getHours()).padStart(2, '0')}:${String(departureDate.getMinutes()).padStart(2, '0')}`,
+      arrivalDate,
+      arrivalTime: `${String(arrivalDate.getHours()).padStart(2, '0')}:${String(arrivalDate.getMinutes()).padStart(2, '0')}`,
+      vehicle_number: trip.vehicle_number,
+      total_seats: trip.total_seats,
+      available_seats: trip.available_seats,
+      price: trip.price,
+      status: trip.status,
+      created_at: trip.created_at,
+      updated_at: trip.updated_at,
+    };
+
+    setEditingTrip(formData);
     setShowModal(true);
   };
 
-  const handleDelete = async (tripId: string) => {
+  const handleDelete = (tripId: string) => {
     if (!confirm('Voulez-vous vraiment supprimer ce trajet ?')) return;
-    
+
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('app_jwt');
-      await fetch(`http://localhost:3002/api/operator/trips/${tripId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-      });
       setTrips(trips.filter(t => t.id !== tripId));
     } catch (error) {
       console.error('Erreur suppression:', error);
     }
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string): string => {
     return new Date(dateString).toLocaleString('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'in_progress':
+        return 'bg-green-100 text-green-800';
+      case 'completed':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string): string => {
     switch (status) {
-      case 'scheduled': return 'Programmé';
-      case 'in_progress': return 'En cours';
-      case 'completed': return 'Terminé';
-      case 'cancelled': return 'Annulé';
-      default: return status;
+      case 'scheduled':
+        return 'Programmé';
+      case 'in_progress':
+        return 'En cours';
+      case 'completed':
+        return 'Terminé';
+      case 'cancelled':
+        return 'Annulé';
+      default:
+        return status;
     }
   };
 
@@ -129,7 +174,7 @@ export function TripsManagement() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {trips.map((trip) => (
+          {trips.map(trip => (
             <div key={trip.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -203,80 +248,155 @@ export function TripsManagement() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-slate-900">
-                {editingTrip ? 'Modifier le Trajet' : 'Nouveau Trajet'}
-              </h3>
-              <button 
-                onClick={() => setShowModal(false)} 
-                className="p-2 hover:bg-slate-100 rounded-lg"
-                aria-label="Fermer"
-                title="Fermer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6">
-              <TripForm
-                initialData={editingTrip ? {
-                  routeId: String((editingTrip as any).route_id || ''),
-                  vehicleId: String((editingTrip as any).vehicle_number || ''),
-                  departureDate: new Date(editingTrip.departure_time),
-                  departureTime: new Date(editingTrip.departure_time).toISOString().slice(11,16),
-                  arrivalDate: new Date(editingTrip.arrival_time),
-                  arrivalTime: new Date(editingTrip.arrival_time).toISOString().slice(11,16),
-                  price: (editingTrip as any).price || '',
-                  availableSeats: editingTrip.total_seats || '',
-                  status: editingTrip.status || 'scheduled',
-                  notes: (editingTrip as any).notes || ''
-                } : {}}
-                operators={[]}
-                vehicles={[]}
-                onSubmit={async (data: any) => {
-                  const token = localStorage.getItem('token') || localStorage.getItem('app_jwt');
-                  const headers: any = {
-                    'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                  };
-                  try {
-                    if (editingTrip) {
-                      const resp = await fetch(`http://localhost:3002/api/operator/trips/${editingTrip.id}`, {
-                        method: 'PUT',
-                        headers,
-                        body: JSON.stringify({
-                          departure_datetime: data.departureDateTime,
-                          arrival_datetime: data.arrivalDateTime,
-                          vehicle_number: String(data.vehicleId || ''),
-                          total_seats: Number(data.availableSeats || 0),
-                          status: data.status,
-                        }),
-                      });
-                      if (!resp.ok) throw new Error('update_failed');
-                    } else {
-                      const resp = await fetch('http://localhost:3002/api/operator/trips', {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({
-                          route_id: String(data.routeId || ''),
-                          departure_datetime: data.departureDateTime,
-                          arrival_datetime: data.arrivalDateTime,
-                          vehicle_number: String(data.vehicleId || ''),
-                          total_seats: Number(data.availableSeats || 0),
-                        }),
-                      });
-                      if (!resp.ok) throw new Error('create_failed');
-                    }
-                    setShowModal(false);
-                    setEditingTrip(null);
-                    await loadTrips();
-                  } catch (e) {
-                    console.error('Erreur enregistrement trajet:', e);
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <h3 className="text-lg font-bold mb-4">{editingTrip ? 'Modifier le trajet' : 'Créer un nouveau trajet'}</h3>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+
+                // On récupère la date courante et on construit la date complète avec heure pour departure et arrival
+                const nowDate = new Date().toISOString().split('T')[0]; // yyyy-mm-dd
+                const departureDateTime = new Date(`${nowDate}T${formData.get('departure_time') as string}`);
+                const arrivalDateTime = new Date(`${nowDate}T${formData.get('arrival_time') as string}`);
+
+                const newTrip: Trip = {
+                  id: editingTrip?.id ?? `t-${Date.now()}`,
+                  route: mockRoutes.find(r => r.id === (formData.get('route_id') as string)) || mockRoutes[0],
+                  departure_time: departureDateTime.toISOString(),
+                  arrival_time: arrivalDateTime.toISOString(),
+                  vehicle_number: formData.get('vehicle_number') as string,
+                  total_seats: parseInt(formData.get('total_seats') as string, 10),
+                  available_seats: parseInt(formData.get('available_seats') as string, 10),
+                  price: parseFloat(formData.get('price') as string),
+                  status: editingTrip?.status || 'scheduled',
+                  created_at: editingTrip?.created_at || new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                };
+                setTrips(prev => {
+                  if (editingTrip) {
+                    // Mise à jour d’un trajet existant
+                    return prev.map(t => (t.id === newTrip.id ? newTrip : t));
+                  } else {
+                    // Ajout d’un nouveau trajet
+                    return [newTrip, ...prev];
                   }
-                }}
-              />
-            </div>
+                });
+                setShowModal(false);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-sm font-medium mb-1">Route</label>
+                <select
+                  name="route_id"
+                  aria-label="Sélectionner un itinéraire"
+                  defaultValue={editingTrip?.routeId || mockRoutes[0].id}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  {mockRoutes.map(route => (
+                    <option key={route.id} value={route.id}>
+                      {route.departure_city} → {route.arrival_city}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Heure de départ</label>
+                <input
+                  type="time"
+                  name="departure_time"
+                  required
+                  aria-label="Heure de départ"
+                  placeholder="HH:MM"
+                  defaultValue={editingTrip?.departureTime}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Heure d'arrivée</label>
+                <input
+                  type="time"
+                  name="arrival_time"
+                  required
+                  aria-label="Heure d'arrivée"
+                  placeholder="HH:MM"
+                  defaultValue={editingTrip?.arrivalTime}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Véhicule</label>
+                <select
+                  name="vehicle_number"
+                  aria-label="Sélectionner un véhicule"
+                  defaultValue={editingTrip?.vehicle_number}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  {mockVehicles.map(vehicle => (
+                    <option key={vehicle.id} value={vehicle.licensePlate}>
+                      {vehicle.licensePlate}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre total de sièges</label>
+                <input
+                  type="number"
+                  name="total_seats"
+                  required
+                  aria-label="Nombre total de sièges"
+                  placeholder="Entrez le nombre total de sièges"
+                  min="1"
+                  defaultValue={editingTrip?.total_seats}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre de sièges disponibles</label>
+                <input
+                  type="number"
+                  name="available_seats"
+                  required
+                  aria-label="Nombre de sièges disponibles"
+                  placeholder="Entrez le nombre de sièges disponibles"
+                  min="0"
+                  defaultValue={editingTrip?.available_seats}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Prix</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  name="price"
+                  required
+                  aria-label="Prix du trajet"
+                  placeholder="Entrez le prix du trajet"
+                  min="0"
+                  defaultValue={editingTrip?.price}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-3 py-2 border rounded"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+                >
+                  Enregistrer
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

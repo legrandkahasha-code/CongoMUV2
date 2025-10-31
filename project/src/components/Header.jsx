@@ -1,14 +1,16 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/lib/authContext';
+import { supabase } from '@/lib/supabase';
 
 const Header = () => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { session, profile } = useAuth();
+  const isAuthenticated = !!session;
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate('/');
   };
 
@@ -66,6 +68,12 @@ const Header = () => {
                     >
                       Mon espace
                     </Link>
+                    <Link
+                      to="/user/security"
+                      className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      Sécurité du compte
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -77,19 +85,18 @@ const Header = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <Link 
-                  to="/login" 
+                <a 
+                  href="#/login" 
                   className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                  state={{ from: location }}
                 >
                   Connexion
-                </Link>
-                <Link 
-                  to="/register" 
+                </a>
+                <a 
+                  href="#/signup" 
                   className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Inscription
-                </Link>
+                </a>
               </div>
             )}
           </div>

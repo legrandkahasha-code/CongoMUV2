@@ -21,8 +21,10 @@ async function deriveKey(passphrase: string, salt: ArrayBuffer) {
   return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" }, keyMaterial, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 
+import { getEnv } from "./production";
+
 export async function encryptString(value: string) {
-  const secret = (import.meta as any).env.VITE_APP_ENCRYPTION_KEY as string;
+  const secret = getEnv("VITE_APP_ENCRYPTION_KEY");
   if (!secret) {
     console.warn("Missing VITE_APP_ENCRYPTION_KEY - encryption disabled");
     return value; // Return plain value if no encryption key
@@ -39,7 +41,7 @@ export async function encryptString(value: string) {
 }
 
 export async function decryptString(payloadB64: string) {
-  const secret = (import.meta as any).env.VITE_APP_ENCRYPTION_KEY as string;
+  const secret = getEnv("VITE_APP_ENCRYPTION_KEY");
   if (!secret) {
     console.warn("Missing VITE_APP_ENCRYPTION_KEY - decryption disabled");
     return payloadB64; // Return plain value if no encryption key

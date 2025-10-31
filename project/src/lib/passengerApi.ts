@@ -5,7 +5,7 @@
  */
 
 import { supabase } from './supabase';
-import type { Trip, Route } from '../types/database.types';
+import type { Trip } from '../types/database.types';
 
 export interface SearchParams {
   departureCity: string;
@@ -17,27 +17,26 @@ export interface SearchParams {
   sortBy?: 'departure_time' | 'price' | 'duration';
 }
 
-function mapToTrip(row: any): Trip {
+function mapToTrip(row: Record<string, unknown>): Trip {
   const trip: Trip = {
-    id: row.id,
-    route_id: row.route_id,
-    vehicle_id: row.vehicle_id,
-    driver_id: row.driver_id,
-    departure_datetime: row.departure_datetime,
-    arrival_datetime: row.arrival_datetime,
-    available_seats: row.available_seats,
-    total_seats: row.total_seats,
-    price: row.price,
-    status: row.status,
-    delay_minutes: row.delay_minutes || 0,
-    cancellation_reason: row.cancellation_reason || null,
-    gate_number: row.gate_number || null,
-    platform_number: row.platform_number || null,
-    is_active: row.is_active !== undefined ? row.is_active : true,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    id: row.id as string,
+    route_id: row.route_id as string,
+    vehicle_id: row.vehicle_id as string | null,
+    driver_id: row.driver_id as string | null,
+    departure_datetime: row.departure_datetime as string,
+    arrival_datetime: row.arrival_datetime as string,
+    available_seats: row.available_seats as number,
+    total_seats: row.total_seats as number,
+    price: row.price as number,
+    status: row.status as Trip['status'],
+    delay_minutes: (row.delay_minutes as number) || 0,
+    cancellation_reason: (row.cancellation_reason as string) || null,
+    gate_number: (row.gate_number as string) || null,
+    platform_number: (row.platform_number as string) || null,
+    is_active: typeof row.is_active === 'boolean' ? row.is_active : true,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
   };
-
   return trip;
 }
 

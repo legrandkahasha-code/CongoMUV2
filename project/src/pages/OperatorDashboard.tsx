@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Users, 
-  MapPin, 
+  MapPin,
   Calendar,
   LogOut
 } from 'lucide-react';
@@ -34,13 +34,6 @@ export function OperatorDashboard() {
   const [organization, setOrganization] = useState<any>(null);
 
   useEffect(() => {
-    // Récupérer l'organisation de l'utilisateur connecté
-    const token = localStorage.getItem('app_jwt');
-    if (!token) {
-      window.location.hash = '#/login';
-      return;
-    }
-
     // TODO: Récupérer les infos de l'organisation depuis l'API
     setOrganization({
       name: 'ONATRA',
@@ -54,31 +47,17 @@ export function OperatorDashboard() {
   const loadDashboardStats = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('app_jwt');
-      const response = await fetch('http://localhost:3002/api/operator/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      // TODO: Replace with Supabase query
+      // Example mock stats
+      setStats({
+        totalTrips: 156,
+        activeTrips: 24,
+        totalBookings: 1247,
+        revenue: 48500000,
+        averageOccupancy: 78,
+        onTimeRate: 92
       });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setStats(result.data);
-      } else {
-        console.error('Erreur API:', response.status);
-        // Fallback données de simulation en cas d'erreur
-        setStats({
-          totalTrips: 156,
-          activeTrips: 24,
-          totalBookings: 1247,
-          revenue: 48500000,
-          averageOccupancy: 78,
-          onTimeRate: 92
-        });
-      }
     } catch (error) {
-      console.error('Erreur chargement stats:', error);
-      // Fallback données de simulation en cas d'erreur
       setStats({
         totalTrips: 0,
         activeTrips: 0,
@@ -93,8 +72,7 @@ export function OperatorDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('app_jwt');
-    window.location.hash = '#/login';
+    (window as unknown as { __signOut?: () => void }).__signOut?.();
   };
 
   return (

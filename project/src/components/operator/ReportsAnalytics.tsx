@@ -16,19 +16,29 @@ interface LinePerformance {
   trips_count: number;
 }
 
+type Period = 'day' | 'week' | 'month' | 'year';
+
 export function ReportsAnalytics() {
-  const [period, setPeriod] = useState<'day' | 'week' | 'month' | 'year'>('month');
+  const [period, setPeriod] = useState<Period>('month');
   const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
   const [linePerformance, setLinePerformance] = useState<LinePerformance[]>([]);
   const [, setLoading] = useState(false);
 
+  // Résumé des statistiques clés, données statiques pour l’exemple
   const [summary] = useState({
     totalRevenue: 48500000,
     averageOccupancy: 78,
     totalTrips: 156,
     totalPassengers: 1247,
-    satisfactionRate: 4.5
+    satisfactionRate: 4.5,
   });
+
+  const periods: { value: Period; label: string }[] = [
+    { value: 'day', label: 'Jour' },
+    { value: 'week', label: 'Semaine' },
+    { value: 'month', label: 'Mois' },
+    { value: 'year', label: 'Année' },
+  ];
 
   useEffect(() => {
     loadReports();
@@ -37,19 +47,18 @@ export function ReportsAnalytics() {
   const loadReports = async () => {
     setLoading(true);
     try {
-      // TODO: Appel API
-      // Données simulées
+      // Simulation de chargement de données
       setRevenueData([
         { period: 'Semaine 1', revenue: 12000000, trips: 38, passengers: 310 },
         { period: 'Semaine 2', revenue: 11500000, trips: 42, passengers: 295 },
         { period: 'Semaine 3', revenue: 13200000, trips: 40, passengers: 335 },
-        { period: 'Semaine 4', revenue: 11800000, trips: 36, passengers: 307 }
+        { period: 'Semaine 4', revenue: 11800000, trips: 36, passengers: 307 },
       ]);
 
       setLinePerformance([
         { line_name: 'Kinshasa - Lubumbashi', revenue: 25000000, occupancy_rate: 85, trips_count: 45 },
         { line_name: 'Matadi - Kinshasa', revenue: 15000000, occupancy_rate: 72, trips_count: 65 },
-        { line_name: 'Kinshasa - Kisangani', revenue: 8500000, occupancy_rate: 68, trips_count: 46 }
+        { line_name: 'Kinshasa - Kisangani', revenue: 8500000, occupancy_rate: 68, trips_count: 46 },
       ]);
     } catch (error) {
       console.error('Erreur chargement rapports:', error);
@@ -60,31 +69,24 @@ export function ReportsAnalytics() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header et Export */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Statistiques & Rapports</h2>
           <p className="text-sm text-slate-600">Revenu par ligne, satisfaction client, ponctualité</p>
         </div>
-        <button
-          className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition"
-        >
+        <button className="flex items-center space-x-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition">
           <span>📄</span>
           <span>Exporter PDF</span>
         </button>
       </div>
 
-      {/* Period Selector */}
+      {/* Sélecteur de période */}
       <div className="flex space-x-2">
-        {[
-          { value: 'day', label: 'Jour' },
-          { value: 'week', label: 'Semaine' },
-          { value: 'month', label: 'Mois' },
-          { value: 'year', label: 'Année' }
-        ].map((p) => (
+        {periods.map((p) => (
           <button
             key={p.value}
-            onClick={() => setPeriod(p.value as any)}
+            onClick={() => setPeriod(p.value)}
             className={`px-4 py-2 rounded-lg font-medium transition ${
               period === p.value
                 ? 'bg-emerald-600 text-white'
@@ -96,62 +98,28 @@ export function ReportsAnalytics() {
         ))}
       </div>
 
-      {/* Summary Cards */}
+      {/* Cartes de résumé */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="bg-green-100 p-2 rounded-lg">
-              <span className="text-xl">💰</span>
+        {[
+          { label: 'Revenu Total', value: summary.totalRevenue.toLocaleString('fr-FR') + ' FC', icon: '💰', bg: 'bg-green-100', color: 'text-green-900' },
+          { label: 'Taux Remplissage', value: summary.averageOccupancy + '%', icon: '📈', bg: 'bg-blue-100', color: 'text-blue-900' },
+          { label: 'Trajets', value: summary.totalTrips.toString(), icon: <Calendar className="w-5 h-5 text-purple-600" />, bg: 'bg-purple-100', color: 'text-purple-900' },
+          { label: 'Passagers', value: summary.totalPassengers.toString(), icon: <Users className="w-5 h-5 text-orange-600" />, bg: 'bg-orange-100', color: 'text-orange-900' },
+          { label: 'Satisfaction', value: summary.satisfactionRate + '/5', icon: '⭐', bg: 'bg-yellow-100', color: 'text-yellow-900' },
+        ].map(({ label, value, icon, bg, color }) => (
+          <div key={label} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className={`${bg} p-2 rounded-lg`}>
+                {typeof icon === 'string' ? <span className={`text-xl ${color}`}>{icon}</span> : icon}
+              </div>
+              <p className="text-sm text-slate-600">{label}</p>
             </div>
-            <p className="text-sm text-slate-600">Revenu Total</p>
+            <p className="text-2xl font-bold text-slate-900">{value}</p>
           </div>
-          <p className="text-2xl font-bold text-slate-900">
-            {summary.totalRevenue.toLocaleString('fr-FR')} FC
-          </p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="bg-blue-100 p-2 rounded-lg">
-              <span className="text-xl">📈</span>
-            </div>
-            <p className="text-sm text-slate-600">Taux Remplissage</p>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{summary.averageOccupancy}%</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="bg-purple-100 p-2 rounded-lg">
-              <Calendar className="w-5 h-5 text-purple-600" />
-            </div>
-            <p className="text-sm text-slate-600">Trajets</p>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{summary.totalTrips}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="bg-orange-100 p-2 rounded-lg">
-              <Users className="w-5 h-5 text-orange-600" />
-            </div>
-            <p className="text-sm text-slate-600">Passagers</p>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{summary.totalPassengers}</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <div className="bg-yellow-100 p-2 rounded-lg">
-              <span className="text-yellow-600 text-xl">⭐</span>
-            </div>
-            <p className="text-sm text-slate-600">Satisfaction</p>
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{summary.satisfactionRate}/5</p>
-        </div>
+        ))}
       </div>
 
-      {/* Revenue Chart */}
+      {/* Évolution du Revenu */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Évolution du Revenu</h3>
         <div className="space-y-3">
@@ -160,15 +128,17 @@ export function ReportsAnalytics() {
               <div className="w-24 text-sm font-medium text-slate-600">{data.period}</div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm text-slate-600">{data.trips} trajets • {data.passengers} passagers</span>
+                  <span className="text-sm text-slate-600">
+                    {data.trips} trajets • {data.passengers} passagers
+                  </span>
                   <span className="font-semibold text-slate-900">
                     {data.revenue.toLocaleString('fr-FR')} FC
                   </span>
                 </div>
                 <div className="revenue-container">
-                  <div 
+                  <div
                     className="revenue-bar"
-                    data-revenue-scale={data.revenue / 15000000}
+                    style={{ width: `${(data.revenue / 15000000) * 100}%` }}
                   />
                 </div>
               </div>
@@ -177,7 +147,7 @@ export function ReportsAnalytics() {
         </div>
       </div>
 
-      {/* Line Performance */}
+      {/* Performance par Ligne */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Performance par Ligne</h3>
         <div className="overflow-x-auto">
@@ -194,19 +164,20 @@ export function ReportsAnalytics() {
               {linePerformance.map((line, index) => (
                 <tr key={index} className="hover:bg-slate-50">
                   <td className="px-4 py-4 font-medium text-slate-900">{line.line_name}</td>
-                  <td className="px-4 py-4 text-slate-900 font-semibold">
-                    {line.revenue.toLocaleString('fr-FR')} FC
-                  </td>
+                  <td className="px-4 py-4 text-slate-900 font-semibold">{line.revenue.toLocaleString('fr-FR')} FC</td>
                   <td className="px-4 py-4 text-slate-600">{line.trips_count}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center space-x-2">
                       <div className="occupancy-container">
-<div
+                        <div
                           className={`occupancy-bar ${
-                            line.occupancy_rate >= 80 ? 'high' :
-                            line.occupancy_rate >= 60 ? 'medium' : 'low'
+                            line.occupancy_rate >= 80
+                              ? 'high'
+                              : line.occupancy_rate >= 60
+                              ? 'medium'
+                              : 'low'
                           }`}
-                          data-occupancy-width={line.occupancy_rate}
+                          style={{ width: `${line.occupancy_rate}%` }}
                         />
                       </div>
                       <span className="font-semibold text-slate-900">{line.occupancy_rate}%</span>

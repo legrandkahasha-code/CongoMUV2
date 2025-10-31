@@ -1,12 +1,11 @@
-import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/authContext';
 
 export default function AuthButtons() {
   const { profile, loading } = useAuth();
   // Removed unused local states
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = () => {
+    (window as any).__signOut?.();
   };
 
   if (loading) {
@@ -19,7 +18,13 @@ export default function AuthButtons() {
         <span className="text-slate-700 text-sm hidden sm:inline">
           {profile.name || 'Compte'} {profile.organizationName ? `· ${profile.organizationName}` : ''}
         </span>
-        <button onClick={signOut} className="flex items-center space-x-2 text-slate-700 hover:text-emerald-600 font-medium transition">
+        <button 
+          onClick={() => { window.location.hash = '#/'; }} 
+          className="flex items-center space-x-2 text-slate-700 hover:text-blue-600 font-medium transition text-sm"
+        >
+          <span>Accueil</span>
+        </button>
+        <button onClick={signOut} className="flex items-center space-x-2 text-slate-700 hover:text-red-600 font-medium transition text-sm">
           <span>Déconnexion</span>
         </button>
       </div>

@@ -15,20 +15,34 @@ export default defineConfig({
     ],
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
-    include: ['react', 'react-dom'], // Removed '@supabase/supabase-js' if not critical
+    exclude: ['lucide-react', '@ark-ui/react'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'react-i18next',
+      'i18next',
+      'date-fns',
+      'leaflet',
+      'qrcode',
+      'react-hook-form',
+      'react-icons',
+      'framer-motion',
+      'react-toastify',
+      '@emotion/react',
+      '@emotion/styled',
+    ], // Removed '@supabase/supabase-js' if not critical
   },
   server: {
     watch: {
       usePolling: false, // Disabled polling for better performance
+      ignored: [
+        '**/backend/**',
+        '**/database/**',
+        '**/dist/**',
+      ],
     },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3002',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
+    proxy: {},
   },
   cacheDir: './node_modules/.vite', // Added cache directory for faster rebuilds
   json: {

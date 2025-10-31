@@ -57,13 +57,13 @@ export async function getCities(): Promise<City[]> {
     
     if (error) throw error;
     
-    const cities: City[] = (data || []).map((city: any) => ({
-      id: city.id,
-      name: city.name,
-      province: city.province,
-      latitude: city.latitude,
-      longitude: city.longitude,
-      is_active: city.is_active,
+    const cities: City[] = (data || []).map((city: Record<string, unknown>) => ({
+      id: city.id as string,
+      name: city.name as string,
+      province: city.province as string,
+      latitude: city.latitude as number | undefined,
+      longitude: city.longitude as number | undefined,
+      is_active: city.is_active as boolean | undefined,
     }));
     
     cachedCities = cities;
@@ -169,11 +169,11 @@ export async function getTransportTypes(): Promise<TransportType[]> {
     
     if (error) throw error;
     
-    const types: TransportType[] = (data || []).map((type: any) => ({
-      id: type.id,
-      name: type.name,
-      icon: type.icon || '',
-      is_active: type.is_active,
+    const types: TransportType[] = (data || []).map((type: Record<string, unknown>) => ({
+      id: type.id as string,
+      name: type.name as string,
+      icon: (type.icon as string) || '',
+      is_active: type.is_active as boolean | undefined,
     }));
     
     cachedTransportTypes = types;
@@ -223,13 +223,13 @@ export async function getOperators(): Promise<Operator[]> {
     
     if (error) throw error;
     
-    const operators: Operator[] = (data || []).map((op: any) => ({
-      id: op.id,
-      name: op.name,
-      type: op.type,
-      contact_email: op.contact_email,
-      contact_phone: op.contact_phone,
-      is_active: op.is_active,
+    const operators: Operator[] = (data || []).map((op: Record<string, unknown>) => ({
+      id: op.id as string,
+      name: op.name as string,
+      type: op.type as string,
+      contact_email: op.contact_email as string | undefined,
+      contact_phone: op.contact_phone as string | undefined,
+      is_active: op.is_active as boolean,
     }));
     
     cachedOperators = operators;
@@ -355,12 +355,12 @@ export async function searchCities(query: string): Promise<City[]> {
     
     if (error) throw error;
     
-    return (data || []).map((city: any) => ({
-      id: city.id,
-      name: city.name,
-      province: city.province,
-      latitude: city.latitude,
-      longitude: city.longitude,
+    return (data || []).map((city: Record<string, unknown>) => ({
+      id: city.id as string,
+      name: city.name as string,
+      province: city.province as string,
+      latitude: city.latitude as number | undefined,
+      longitude: city.longitude as number | undefined,
     }));
   } catch (error) {
     console.error('Error searching cities:', error);
@@ -374,8 +374,8 @@ export function getPopularRoutes(): Array<{ from: string; to: string; count: num
     const history = JSON.parse(localStorage.getItem('history.searches') || '[]');
     const routeCounts: Record<string, number> = {};
     
-    history.forEach((h: any) => {
-      const key = `${h.departureCity}→${h.arrivalCity}`;
+    history.forEach((h: Record<string, unknown>) => {
+      const key = `${h.departureCity as string}→${h.arrivalCity as string}`;
       routeCounts[key] = (routeCounts[key] || 0) + 1;
     });
     

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';
+// Supabase only: backend API removed
 
 interface Incident {
   id: string;
@@ -21,43 +21,29 @@ export const useIncidentsBackend = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('app_jwt') || localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-  };
+  // Auth headers not needed for Supabase client
 
   const fetchIncidents = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const url = `${API_BASE}/admin-hq/incidents`;
-      console.log('🔍 Chargement incidents depuis:', url);
-      
-      const response = await fetch(url);
-      
-      console.log('📡 Status:', response.status);
-
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('❌ Erreur response:', text);
-        throw new Error(`Erreur ${response.status}: ${text}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Données reçues:', result);
-      
-      const data = result.data || result;
-      console.log('📊 Nombre incidents:', data.length);
-      
-      setIncidents(Array.isArray(data) ? data : []);
+      // TODO: Replace with Supabase query
+      // Example mock data
+      const mockIncidents = [
+        {
+          id: '1',
+          type: 'Retard',
+          severity: 'mineur',
+          status: 'résolu',
+          description: 'Bus en retard de 10 min',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
+      setIncidents(mockIncidents);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue';
-      setError(errorMessage);
-      console.error('❌ ERREUR COMPLETE:', err);
+      setError('Erreur chargement incidents');
     } finally {
       setLoading(false);
     }
@@ -65,50 +51,31 @@ export const useIncidentsBackend = () => {
 
   const createIncident = async (incidentData: Omit<Incident, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const response = await fetch(`${API_BASE}/admin-hq/incidents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(incidentData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la création de l\'incident');
-      }
-
-      const result = await response.json();
-      const newIncident = result.data || result;
-      
-      // Rafraîchir la liste
-      await fetchIncidents();
-      
+      // TODO: Replace with Supabase insert
+      // Example mock creation
+      const newIncident = {
+        ...incidentData,
+        id: String(Date.now()),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setIncidents(prev => [...prev, newIncident]);
       return newIncident;
     } catch (err) {
-      console.error('Erreur création incident:', err);
       throw err;
     }
   };
 
   const updateIncident = async (id: string, updates: Partial<Incident>) => {
     try {
-      const response = await fetch(`${API_BASE}/admin-hq/incidents/${id}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(updates)
-      });
-
-      if (!response.ok) {
-        throw new Error('Erreur lors de la mise à jour de l\'incident');
-      }
-
-      const updatedIncident = await response.json();
-      setIncidents(prev => 
-        prev.map(incident => 
-          incident.id === id ? { ...incident, ...updatedIncident } : incident
+      // TODO: Replace with Supabase update
+      setIncidents(prev =>
+        prev.map(incident =>
+          incident.id === id ? { ...incident, ...updates, updated_at: new Date().toISOString() } : incident
         )
       );
-      return updatedIncident;
+      return updates;
     } catch (err) {
-      console.error('Erreur mise à jour incident:', err);
       throw err;
     }
   };

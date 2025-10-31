@@ -5,7 +5,7 @@ import { useState } from 'react';
  * Pas besoin d'OTP, connexion immédiate
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+// Supabase only: backend API removed
 
 export default function DevLogin() {
   const [email, setEmail] = useState('admin@congomuv.cd');
@@ -19,29 +19,13 @@ export default function DevLogin() {
       setStatus(null);
       setError(null);
       
-      const response = await fetch(`${API_BASE}/api/dev-auth/quick-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: 'unused' })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Erreur de connexion');
-      }
-      
-      // Stocker le token et les infos utilisateur
-      localStorage.setItem('app_jwt', data.token);
-      localStorage.setItem('app_role', (data.user.role || 'user').toUpperCase());
-      localStorage.setItem('app_email', data.user.email);
-      localStorage.setItem('app_user_id', data.user.id);
-      if (data.user.organization_id) {
-        localStorage.setItem('app_organization_id', data.user.organization_id);
-      }
-      
+      // TODO: Replace with Supabase quick login
+      // Example mock logic
+      localStorage.setItem('app_jwt', 'MOCK_TOKEN');
+      localStorage.setItem('app_role', 'ADMIN');
+      localStorage.setItem('app_email', email);
+      localStorage.setItem('app_user_id', 'MOCK_ID');
       setStatus('✅ Connexion réussie ! Redirection...');
-      
       setTimeout(() => {
         window.location.hash = '#/admin';
         window.location.reload();

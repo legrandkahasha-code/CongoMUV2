@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { verifyPassword } from '../lib/auth2FA';
-import { authApi } from '../lib/api';
+import { useAuth } from '@/lib/authContext';
 
 
 export default function Signup() {
+  const { signUp } = useAuth();
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -25,33 +25,25 @@ export default function Signup() {
     setError(null);
     setMessage(null);
     try {
-      const res = await authApi.register(form);
-      // Gestion des erreurs API précises
-      if (!res || res.error || res.message) {
-        const apiMsg = res?.error || res?.message || 'Inscription échouée';
-        let errorMsg = '';
-        if (apiMsg.toLowerCase().includes('existe déjà')) {
-          errorMsg = 'Cette adresse email est déjà utilisée. Essayez de vous connecter ou utilisez un autre email.';
-        } else if (apiMsg.toLowerCase().includes('mot de passe')) {
-          errorMsg = 'Mot de passe trop faible ou invalide. Utilisez au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole.';
-        } else if (apiMsg.toLowerCase().includes('email')) {
-          errorMsg = 'Adresse email invalide ou déjà utilisée.';
-        } else {
-          errorMsg = apiMsg;
+      const emailLower = form.email.trim().toLowerCase();
+      const res = await signUp({ email: emailLower, password: form.password, full_name: form.full_name || null, phone: form.phone || null });
+      if ('error' in res && res.error) {
+        let errorMsg = res.error || 'Inscription échouée';
+        if (errorMsg.toLowerCase().includes('password')) {
+          errorMsg = 'Mot de passe trop faible. Utilisez au moins 8 caractères, une majuscule, une minuscule, un chiffre et un symbole.';
+        } else if (errorMsg.toLowerCase().includes('already registered') || errorMsg.toLowerCase().includes('already exists')) {
+          errorMsg = 'Cette adresse email est déjà utilisée. Connectez-vous ou utilisez un autre email.';
         }
         setError(errorMsg);
         setLoading(false);
         return;
       }
-      setMessage('Compte créé. Un code OTP vous sera envoyé après vérification du mot de passe.');
-      // Déclencher le même flux que le login pour envoyer un OTP
-      const loginRes = await verifyPassword(form.email, form.password);
-      if (loginRes.success) {
-        setMessage('Code OTP envoyé. Allez à la page de connexion pour valider votre code.');
-        setTimeout(() => { window.location.hash = '#/login'; }, 600);
+      if ('message' in res && typeof res.message === 'string') {
+        setMessage(res.message);
       } else {
-        setError(loginRes.message || "Impossible d'envoyer le code OTP");
+        setMessage('✅ Compte créé ! Vous pouvez maintenant vous connecter.');
       }
+      setTimeout(() => { window.location.hash = '#/login'; }, 1200);
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message || "Erreur lors de l'inscription");

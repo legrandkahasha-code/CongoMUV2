@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/lib/authContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 // Layouts
@@ -18,8 +18,8 @@ import RouteDetailsPage from '../pages/RouteDetailsPage';
 import TripDetailsPage from '../pages/TripDetailsPage';
 
 // Pages d'authentification
-import LoginPage from '../pages/auth/LoginPage';
-import RegisterPage from '../pages/auth/RegisterPage';
+import LoginPage from '../pages/LoginPage';
+import RegisterPage from '../pages/Signup';
 import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '../pages/auth/ResetPasswordPage';
 
@@ -38,13 +38,15 @@ import AdminTripsPage from '../pages/admin/TripsPage';
 import AdminVehiclesPage from '../pages/admin/VehiclesPage';
 import AdminBookingsPage from '../pages/admin/BookingsPage';
 import AdminReportsPage from '../pages/admin/ReportsPage';
+import AccountSecurity from '../pages/AccountSecurity';
 
 // Pages d'erreur
 import NotFoundPage from '../pages/errors/NotFoundPage';
 import UnauthorizedPage from '../pages/errors/UnauthorizedPage';
 
 const AppRoutes = () => {
-  const { isAuthenticated } = useAuth();
+  const { session } = useAuth();
+  const isAuthenticated = !!session;
   const location = useLocation();
 
   return (
@@ -106,6 +108,7 @@ const AppRoutes = () => {
           <Route path="bookings/:id" element={<BookingDetailsPage />} />
           <Route path="bookings/:id/payment" element={<PaymentPage />} />
           <Route path="profile" element={<UserProfilePage />} />
+          <Route path="security" element={<AccountSecurity />} />
         </Route>
 
         {/* Routes administrateur protégées */}

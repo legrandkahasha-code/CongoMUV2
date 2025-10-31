@@ -32,8 +32,8 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
 
   const calculatePricing = () => {
     const passengerPrices = passengers.map(passenger => {
-      const isChild = passenger.age < 3;
-      const discount = isChild ? 0.3 : 0; // 30% de réduction pour enfants < 3 ans
+      const isChild = passenger.age < 5;
+      const discount = isChild ? 0.5 : 0; // 50% de réduction pour enfants < 5 ans
       const originalPrice = basePrice;
       const finalPrice = originalPrice * (1 - discount);
 
@@ -82,7 +82,7 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
       if (p.id === id) {
         const updated = { ...p, [field]: value };
         if (field === 'age') {
-          updated.isChild = parseInt(value) < 3;
+          updated.isChild = parseInt(value) < 5;
           updated.discountApplied = updated.isChild;
         }
         return updated;
@@ -269,7 +269,7 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
                       </span>
                       {passenger.isChild && (
                         <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-1 rounded-full font-semibold">
-                          -30%
+                          -50%
                         </span>
                       )}
                     </div>
@@ -320,7 +320,7 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
                   {passenger.isChild && (
                     <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                       <p className="text-sm text-yellow-800 font-medium">
-                        🎉 Réduction enfant appliquée : -30% sur le prix de base
+                        🎉 Réduction enfant appliquée : -50% sur le prix de base
                       </p>
                     </div>
                   )}
@@ -343,7 +343,7 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
                     <div className="flex items-center space-x-2">
                       <span className="text-slate-600">
                         {pp.passengerName || `Passager ${index + 1}`}
-                        {pp.age < 3 && ' (Enfant)'}
+                        {pp.age < 5 && ' (Enfant)'}
                       </span>
                       {pp.discount > 0 && (
                         <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-semibold">
@@ -388,7 +388,7 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
           {/* Info Box */}
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              ℹ️ <strong>Réduction enfant :</strong> Les enfants de moins de 3 ans bénéficient d'une réduction de 30% sur le tarif de base.
+              ℹ️ <strong>Réduction enfant :</strong> Les enfants de moins de 5 ans bénéficient d'une réduction de 50% sur le tarif de base.
             </p>
           </div>
 

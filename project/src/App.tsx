@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from './lib/authContext';
 import { Trip as ImportedTrip } from './types';
 import { cities } from './features/cities';
 import { formatTime, formatDuration } from './utils/passengerUtils';
@@ -8,6 +9,8 @@ import { MyTripsModal } from './components/MyTripsModal';
 import AuthButtons from './components/AuthButtons';
 
 export default function App() {
+  const { session } = useAuth();
+  const isAuthenticated = !!session;
   const [search, setSearch] = useState({ departure: '', arrival: '', date: '' });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -105,12 +108,14 @@ export default function App() {
         <div className="text-2xl font-bold text-blue-700">CongoMuv</div>
         <div className="flex items-center gap-4">
           <AuthButtons />
-          <button
-            onClick={() => window.location.hash = '#/signup'}
-            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition text-sm"
-          >
-            Inscription
-          </button>
+          {!isAuthenticated && (
+            <button
+              onClick={() => window.location.hash = '#/signup'}
+              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition text-sm"
+            >
+              Inscription
+            </button>
+          )}
         </div>
       </header>
       <main className="flex-1">
@@ -120,9 +125,41 @@ export default function App() {
             <h2 className="text-4xl font-bold mb-4 text-center">Voyagez en toute simplicité</h2>
             <form className="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-4" onSubmit={handleSearch}>
               <div className="flex flex-col sm:flex-row gap-4">
-                <input list="citiesList" className="border rounded-lg px-3 py-2 w-full" placeholder="Départ" value={search.departure} onChange={e => setSearch(s => ({ ...s, departure: e.target.value }))} required />
-                <input list="citiesList" className="border rounded-lg px-3 py-2 w-full" placeholder="Arrivée" value={search.arrival} onChange={e => setSearch(s => ({ ...s, arrival: e.target.value }))} required />
-                <input type="date" className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600" value={search.date} onChange={e => setSearch(s => ({ ...s, date: e.target.value }))} required />
+                <div className="w-full">
+                  <label htmlFor="search-departure" className="sr-only">Ville de départ</label>
+                  <input
+                    id="search-departure"
+                    list="citiesList"
+                    className="border rounded-lg px-3 py-2 w-full"
+                    placeholder="Départ"
+                    value={search.departure}
+                    onChange={e => setSearch(s => ({ ...s, departure: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="w-full">
+                  <label htmlFor="search-arrival" className="sr-only">Ville d'arrivée</label>
+                  <input
+                    id="search-arrival"
+                    list="citiesList"
+                    className="border rounded-lg px-3 py-2 w-full"
+                    placeholder="Arrivée"
+                    value={search.arrival}
+                    onChange={e => setSearch(s => ({ ...s, arrival: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="w-full">
+                  <label htmlFor="search-date" className="sr-only">Date du trajet</label>
+                  <input
+                    id="search-date"
+                    type="date"
+                    className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                    value={search.date}
+                    onChange={e => setSearch(s => ({ ...s, date: e.target.value }))}
+                    required
+                  />
+                </div>
               </div>
               <button type="submit" className="bg-blue-700 text-white font-bold py-2 rounded-lg hover:bg-blue-800 transition">Rechercher</button>
             </form>
@@ -206,6 +243,18 @@ export default function App() {
                 >
                   Précédent
                 </button>
+                {!isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      setTimeout(() => {
+                        window.location.hash = '#/login';
+                      }, 100);
+                    }}
+                    className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50"
+                  >
+                    Connexion
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     setTimeout(() => {

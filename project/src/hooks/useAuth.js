@@ -29,64 +29,37 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(false);
         return;
       }
-
-      try {
-        // Vérifier la validité du token avec le backend
-        const response = await axios.get('/api/auth/me');
-        setUser(response.data.user);
-      } catch (error) {
-        console.error('Erreur de vérification du token:', error);
-        logout();
-      } finally {
-        setIsLoading(false);
-      }
+      // TODO: Replace with Supabase session check
+      // Example mock logic
+      setUser({ email: 'mock@congomuv.cd', first_name: 'MockUser' });
+      setIsLoading(false);
     };
-
     verifyToken();
   }, [token]);
 
   const login = async (email, password) => {
-    try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      const { token: authToken, user: userData } = response.data;
-      
-      setToken(authToken);
-      setUser(userData);
-      
-      toast({
-        title: 'Connexion réussie',
-        description: `Bienvenue, ${userData.first_name || userData.email}!`,
-      });
-      
-      return userData;
-    } catch (error) {
-      console.error('Erreur de connexion:', error);
-      throw new Error(
-        error.response?.data?.message || 'Échec de la connexion. Veuillez réessayer.'
-      );
-    }
+    // TODO: Replace with Supabase signIn
+    // Example mock logic
+    setToken('MOCK_TOKEN');
+    const userData = { email, first_name: 'MockUser' };
+    setUser(userData);
+    toast({
+      title: 'Connexion réussie',
+      description: `Bienvenue, ${userData.first_name || userData.email}!`,
+    });
+    return userData;
   };
 
   const signup = async (userData) => {
-    try {
-      const response = await axios.post('/api/auth/register', userData);
-      const { token: authToken, user: newUser } = response.data;
-      
-      setToken(authToken);
-      setUser(newUser);
-      
-      toast({
-        title: 'Inscription réussie',
-        description: 'Votre compte a été créé avec succès!',
-      });
-      
-      return newUser;
-    } catch (error) {
-      console.error('Erreur d\'inscription:', error);
-      throw new Error(
-        error.response?.data?.message || "Échec de l'inscription. Veuillez réessayer."
-      );
-    }
+    // TODO: Replace with Supabase signUp
+    // Example mock logic
+    setToken('MOCK_TOKEN');
+    setUser(userData);
+    toast({
+      title: 'Inscription réussie',
+      description: 'Votre compte a été créé avec succès!',
+    });
+    return userData;
   };
 
   const logout = () => {
@@ -102,40 +75,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateProfile = async (userData) => {
-    try {
-      const response = await axios.put('/api/auth/me', userData);
-      setUser(response.data.user);
-      
-      toast({
-        title: 'Profil mis à jour',
-        description: 'Vos informations ont été mises à jour avec succès.',
-      });
-      
-      return response.data.user;
-    } catch (error) {
-      console.error('Erreur de mise à jour du profil:', error);
-      throw new Error(
-        error.response?.data?.message || 'Échec de la mise à jour du profil.'
-      );
-    }
+    // TODO: Replace with Supabase update
+    // Example mock logic
+    setUser(userData);
+    toast({
+      title: 'Profil mis à jour',
+      description: 'Vos informations ont été mises à jour avec succès.',
+    });
+    return userData;
   };
 
   const resetPassword = async (email) => {
-    try {
-      await axios.post('/api/auth/forgot-password', { email });
-      
-      toast({
-        title: 'Email envoyé',
-        description: 'Un email de réinitialisation a été envoyé à votre adresse.',
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Erreur de réinitialisation du mot de passe:', error);
-      throw new Error(
-        error.response?.data?.message || 'Échec de la réinitialisation du mot de passe.'
-      );
-    }
+    // TODO: Replace with Supabase password reset
+    // Example mock logic
+    toast({
+      title: 'Email envoyé',
+      description: 'Un email de réinitialisation a été envoyé à votre adresse.',
+    });
+    return true;
   };
 
   const value = {

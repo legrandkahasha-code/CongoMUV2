@@ -1,22 +1,24 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { getDashboardByRole } from '../../utils/roleUtils';
+import { useAuth } from '@/lib/authContext';
+import { getDashboardByRole, checkPermission as verifyPermission } from '../../utils/roleUtils';
 
 const ProtectedRoute = ({ 
   children, 
   requiredRole, 
+  roles, 
   requiredPermission,
   redirectTo,
   ...rest 
 }) => {
   const { 
-    isAuthenticated, 
-    hasRole, 
-    hasPermission,
-    user,
-    isLoading 
+    session,
+    profile,
+    loading: isLoading,
+    hasRole,
   } = useAuth();
+  const isAuthenticated = !!session;
+  const user = profile ? { role: profile.role } : null;
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,7 +47,8 @@ const ProtectedRoute = ({
   }
 
   // Vérifier les rôles requis
-  if (requiredRole && !hasRole(requiredRole)) {
+  const rolesOk = Array.isArray(roles) && roles.length > 0 ? roles.some(r => hasRole(r)) : (requiredRole ? hasRole(requiredRole) : true);
+  if (!rolesOk) {
     // Si une redirection personnalisée est spécifiée, l'utiliser
     if (redirectTo) {
       return <Navigate to={redirectTo} replace />;
@@ -57,7 +60,7 @@ const ProtectedRoute = ({
   }
 
   // Vérifier les permissions requises
-  if (requiredPermission && !hasPermission(requiredPermission)) {
+  if (requiredPermission && !(user?.role && verifyPermission(user.role, requiredPermission))) {
     return <Navigate to="/unauthorized" state={{ from: location }} replace />;
   }
 

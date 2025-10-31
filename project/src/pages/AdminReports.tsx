@@ -1,30 +1,38 @@
 import { useMemo, useState } from 'react';
 import { Trip } from '../types';
-import { getPayments } from '../lib/logs';
+import { getPayments, Payment } from '../lib/logs';
 
-export default function AdminReports({ isOpen, onClose, data }: { isOpen: boolean; onClose: () => void; data?: { bookings?: any[]; payments?: any[]; trips?: Trip[] } }) {
-  if (!isOpen) return null;
+export interface AdminReportsProps {
+  isOpen: boolean;
+  onClose: () => void;
+  data?: {
+    bookings?: unknown[];
+    payments?: Payment[];
+    trips?: Trip[];
+  };
+}
 
+export default function AdminReports({ isOpen, onClose, data }: AdminReportsProps) {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
-
   const totals = useMemo(() => {
     // Prefer local logs if data not provided
-    const paymentsSrc = (data?.payments && data.payments.length > 0) ? data.payments : getPayments();
+    const paymentsSrc: Payment[] = (data?.payments && data.payments.length > 0) ? data.payments : getPayments();
     const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : undefined;
     const to = dateTo ? new Date(`${dateTo}T23:59:59`).getTime() : undefined;
-    const payments = paymentsSrc.filter((p: any) => {
-      const ts = new Date(p.ts || p.created_at || p.date || Date.now()).getTime();
+    const payments = paymentsSrc.filter((p: Payment) => {
+      const ts = new Date(p.ts).getTime();
       if (from && ts < from) return false;
       if (to && ts > to) return false;
       return true;
     });
-    const totalRevenue = payments.filter((p: any) => p.status === 'success').reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+    const totalRevenue = payments.filter((p: Payment) => p.status === 'success').reduce((s: number, p: Payment) => s + Number(p.amount || 0), 0);
     // In absence of real bookings list, approximate by count of payments
     const totalBookings = payments.length;
     const avgPerBooking = totalBookings ? Math.round(totalRevenue / totalBookings) : 0;
     return { totalRevenue, totalBookings, avgPerBooking, payments };
   }, [data, dateFrom, dateTo]);
+  if (!isOpen) return null;
 
   const exportCSV = () => {
     const rows = [
@@ -37,7 +45,7 @@ export default function AdminReports({ isOpen, onClose, data }: { isOpen: boolea
       [],
       ['Payments (filtered)'],
       ['id','timestamp','bookingRef','amount','method','status'],
-      ...totals.payments.map((p: any) => [p.id || '', new Date(p.ts || Date.now()).toISOString(), p.bookingRef || '', String(p.amount || 0), p.method || '', p.status || ''])
+  ...totals.payments.map((p: Payment) => [p.id || '', new Date(p.ts).toISOString(), p.bookingRef || '', String(p.amount || 0), p.method || '', p.status || ''])
     ];
     const csv = rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

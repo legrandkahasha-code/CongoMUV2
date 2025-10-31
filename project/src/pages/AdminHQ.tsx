@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/authContext';
 import { LogOut } from 'lucide-react';
 import { 
   SupervisionPassengers,
@@ -46,7 +47,9 @@ interface AdminStats {
 }
 
 export function AdminHQ() {
+  const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<'supervision' | 'admins' | 'monitoring' | 'security' | 'api' | 'routes' | 'operators'>('routes');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [stats, setStats] = useState<AdminStats>({
     totalPassengers: 8934,
     totalBookings: 1247,
@@ -63,27 +66,7 @@ export function AdminHQ() {
   const [showOperatorModal, setShowOperatorModal] = useState(false);
   const [loadingOperators, setLoadingOperators] = useState(false);
 
-  // Auto-open a modal on first load of a tab to validate UI rendering (debug temporary)
-  useEffect(() => {
-    if (activeTab === 'routes' && !showRouteModal) {
-      setTimeout(() => setShowRouteModal(true), 100);
-    }
-    if (activeTab === 'operators' && !showOperatorModal) {
-      setTimeout(() => setShowOperatorModal(true), 100);
-    }
-  }, [activeTab]);
-
-  // Keyboard shortcut: press 'm' to toggle current tab modal (debug)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'm') {
-        if (activeTab === 'routes') setShowRouteModal((v) => !v);
-        if (activeTab === 'operators') setShowOperatorModal((v) => !v);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [activeTab]);
+  // Supprimer les comportements de debug (pas d'ouverture auto, pas de raccourcis clavier)
 
   useEffect(() => {
     loadUserProfile();
@@ -99,106 +82,47 @@ export function AdminHQ() {
   }, [activeTab]);
 
   const loadUserProfile = async () => {
-    try {
-      const token = localStorage.getItem('app_jwt');
-      if (!token) {
-        // Ne pas rediriger pour permettre le test UI des formulaires
-        setMe({ role: 'ADMIN', full_name: 'Admin (local)', email: 'admin@example.com' });
-        return;
-      }
-
-      const response = await fetch('http://localhost:3002/api/users/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setMe(data);
-        // Ne pas rediriger même si le rôle n'est pas ADMIN afin de tester l'UI
-      } else {
-        // Fallback permissif pour tester l'UI
-        setMe({ role: 'ADMIN', full_name: 'Admin (fallback)', email: 'admin@example.com' });
-      }
-    } catch (error) {
-      console.error('Erreur chargement profil:', error);
-      // Fallback permissif pour tester l'UI
-      setMe({ role: 'ADMIN', full_name: 'Admin (offline)', email: 'admin@example.com' });
-    }
+    // Supabase only: backend API removed
+    setMe({ role: 'ADMIN', full_name: 'Admin (local)', email: 'admin@example.com' });
   };
 
   const loadRoutes = async () => {
-    try {
-      setLoadingRoutes(true);
-      const token = localStorage.getItem('app_jwt') || localStorage.getItem('token');
-      const resp = await fetch('http://localhost:3002/api/admin-crud/routes', {
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      const json = await resp.json();
-      const items = Array.isArray(json?.items) ? json.items : Array.isArray(json) ? json : [];
-      setRoutes(items as any);
-    } catch (e) {
-      setRoutes([]);
-    } finally {
-      setLoadingRoutes(false);
-    }
+    setLoadingRoutes(true);
+    // Supabase only: backend API removed
+    // Example mock routes
+    setRoutes([
+      { id: '1', route_code: 'A1', name: 'Kinshasa - Matadi', departure_city: 'Kinshasa', arrival_city: 'Matadi', is_active: true },
+      { id: '2', route_code: 'B2', name: 'Lubumbashi - Kolwezi', departure_city: 'Lubumbashi', arrival_city: 'Kolwezi', is_active: true }
+    ]);
+    setLoadingRoutes(false);
   };
 
   const loadOperators = async () => {
-    try {
-      setLoadingOperators(true);
-      const token = localStorage.getItem('app_jwt') || localStorage.getItem('token');
-      const resp = await fetch('http://localhost:3002/api/admin-hq/operators', {
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      const json = await resp.json();
-      const items = Array.isArray(json?.data) ? json.data : [];
-      setOperators(items as any);
-    } catch (e) {
-      setOperators([]);
-    } finally {
-      setLoadingOperators(false);
-    }
+    setLoadingOperators(true);
+    // Supabase only: backend API removed
+    // Example mock operators
+    setOperators([
+      { id: '1', name: 'TransCongo', type: 'PUBLIC', is_active: true, created_at: new Date().toISOString() },
+      { id: '2', name: 'Katanga Express', type: 'PRIVATE', is_active: true, created_at: new Date().toISOString() }
+    ]);
+    setLoadingOperators(false);
   };
 
   const loadStats = async () => {
-    try {
-      const token = localStorage.getItem('app_jwt');
-      const response = await fetch('http://localhost:3002/api/admin-hq/stats', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        setStats(result.data);
-      } else {
-        console.error('Erreur API:', response.status);
-        // Fallback données simulées
-        setStats({
-          totalPassengers: 8934,
-          totalBookings: 1247,
-          totalRevenue: 45600000,
-          activeOperators: 12,
-          pendingIncidents: 3,
-          apiCalls24h: 15420
-        });
-      }
-    } catch (error) {
-      console.error('Erreur chargement stats:', error);
-      // Fallback en cas d'erreur réseau
-      setStats({
-        totalPassengers: 0,
-        totalBookings: 0,
-        totalRevenue: 0,
-        activeOperators: 0,
-        pendingIncidents: 0,
-        apiCalls24h: 0
-      });
-    }
+    // Supabase only: backend API removed
+    // Example mock stats
+    setStats({
+      totalPassengers: 8934,
+      totalBookings: 1247,
+      totalRevenue: 45600000,
+      activeOperators: 12,
+      pendingIncidents: 3,
+      apiCalls24h: 15420
+    });
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('app_jwt');
-    window.location.hash = '#/login';
+    (window as unknown as { __signOut?: () => void }).__signOut?.();
   };
 
   const tabs = [
@@ -240,87 +164,147 @@ export function AdminHQ() {
               </button>
             </div>
           </div>
+          {/* Superadmin global navigation */}
+          {(() => {
+            const r = (profile?.role || '').toLowerCase();
+            const isSuper = r === 'superadmin' || r === 'super_admin';
+            if (!isSuper) return null;
+            return (
+              <div className="mt-4 grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+                <a href="#/superadmin" className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">SuperAdmin</a>
+                <a href="#/admin/dashboard" className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Admin Dashboard</a>
+                <a href="#/admin" className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm">Admin (Organisation)</a>
+              </div>
+            );
+          })()}
         </div>
       </header>
 
-      {/* Stats Cards */}
+      {/* Layout with collapsible sidebar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">👥</span>
-              <span className="text-slate-400">🔔</span>
+        <div className="flex gap-4">
+          {/* Sidebar */}
+          <aside className={`bg-white border border-slate-200 rounded-xl shadow-sm transition-all ${sidebarOpen ? 'w-64' : 'w-16'} overflow-hidden`}> 
+            <div className="flex items-center justify-between px-3 py-2 border-b">
+              <span className="text-sm font-semibold text-slate-700">SuperAdmin</span>
+              <button onClick={() => setSidebarOpen(v => !v)} className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1">{sidebarOpen ? '⟨' : '⟩'}</button>
             </div>
-            <p className="text-2xl font-bold text-slate-900">{stats.totalPassengers.toLocaleString('fr-FR')}</p>
-            <p className="text-xs text-slate-600">Passagers</p>
-          </div>
+            <nav className="p-2 space-y-1">
+              <div className="text-[11px] uppercase tracking-wide text-slate-500 px-2">Sections</div>
+              {[
+                { id: 'routes', label: 'Routes', icon: '🗺️' },
+                { id: 'operators', label: 'Opérateurs', icon: '🏢' },
+                { id: 'supervision', label: 'Supervision', icon: '👥' },
+                { id: 'admins', label: 'Multi-Admins', icon: '🛡️' },
+                { id: 'monitoring', label: 'Monitoring', icon: '📊' },
+                { id: 'security', label: 'Sécurité', icon: '🔒' },
+                { id: 'api', label: 'API', icon: '🔌' },
+              ].map((it: any) => (
+                <button
+                  key={it.id}
+                  onClick={() => setActiveTab(it.id)}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${activeTab === it.id ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100'}`}
+                  title={it.label}
+                >
+                  <span className="text-base" aria-hidden>{it.icon}</span>
+                  {sidebarOpen && <span>{it.label}</span>}
+                </button>
+              ))}
+              <div className="text-[11px] uppercase tracking-wide text-slate-500 px-2 mt-3">Dashboards</div>
+              {(() => {
+                const r = (profile?.role || '').toLowerCase();
+                const isSuper = r === 'superadmin' || r === 'super_admin';
+                if (!isSuper) return null;
+                return (
+                  <div className="space-y-1">
+                    <a href="#/superadmin" className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">SuperAdmin</a>
+                    <a href="#/admin/dashboard" className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">Admin Dashboard</a>
+                    <a href="#/admin" className="block px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100">Admin (Organisation)</a>
+                  </div>
+                );
+              })()}
+            </nav>
+          </aside>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">🎫</span>
+          {/* Main content */}
+          <div className="flex-1">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">👥</span>
+                  <span className="text-slate-400">🔔</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalPassengers.toLocaleString('fr-FR')}</p>
+                <p className="text-xs text-slate-600">Passagers</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">🎫</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalBookings.toLocaleString('fr-FR')}</p>
+                <p className="text-xs text-slate-600">Réservations</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">💰</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{(stats.totalRevenue / 1000000).toFixed(1)}M</p>
+                <p className="text-xs text-slate-600">Revenu (FC)</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">🏢</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{stats.activeOperators}</p>
+                <p className="text-xs text-slate-600">Opérateurs</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">⚠️</span>
+                  {stats.pendingIncidents > 0 && (
+                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.pendingIncidents}</span>
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{stats.pendingIncidents}</p>
+                <p className="text-xs text-slate-600">Incidents</p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-2xl">🔌</span>
+                </div>
+                <p className="text-2xl font-bold text-slate-900">{stats.apiCalls24h.toLocaleString('fr-FR')}</p>
+                <p className="text-xs text-slate-600">Appels API</p>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-slate-900">{stats.totalBookings.toLocaleString('fr-FR')}</p>
-            <p className="text-xs text-slate-600">Réservations</p>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">💰</span>
+            {/* Navigation Tabs */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-x-auto">
+              <div className="flex space-x-1 p-2">
+                {tabs.map((tab, index) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{['👥', '🛡️', '📊', '🗺️', '🏢', '🔒', '🔌'][index]}</span>
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="text-2xl font-bold text-slate-900">{(stats.totalRevenue / 1000000).toFixed(1)}M</p>
-            <p className="text-xs text-slate-600">Revenu (FC)</p>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">🏢</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{stats.activeOperators}</p>
-            <p className="text-xs text-slate-600">Opérateurs</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">⚠️</span>
-              {stats.pendingIncidents > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{stats.pendingIncidents}</span>
-              )}
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{stats.pendingIncidents}</p>
-            <p className="text-xs text-slate-600">Incidents</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-2xl">🔌</span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{stats.apiCalls24h.toLocaleString('fr-FR')}</p>
-            <p className="text-xs text-slate-600">Appels API</p>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-6 overflow-x-auto">
-          <div className="flex space-x-1 p-2">
-            {tabs.map((tab, index) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>{['👥', '🛡️', '📊', '🗺️', '🏢', '🔒', '🔌'][index]}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div>
+            {/* Content */}
+            <div>
           {activeTab === 'supervision' && <SupervisionPassengers />}
           {activeTab === 'admins' && <MultiAdminManagement />}
           {activeTab === 'monitoring' && <MonitoringAlerts />}
@@ -452,7 +436,7 @@ export function AdminHQ() {
                 </form>
               </div>
 
-              {showRouteModal && (
+                  {showRouteModal && (
                 <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
                   <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
                     <div className="p-4 border-b flex items-center justify-between">
@@ -560,9 +544,9 @@ export function AdminHQ() {
                   {showOperatorModal && <span className="ml-2 text-xs text-emerald-700">Modal ouvert</span>}
                 </div>
               </div>
-              {loadingOperators ? (
+                {loadingOperators ? (
                 <div className="text-center py-10">Chargement...</div>
-              ) : (
+                ) : (
                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
@@ -590,7 +574,7 @@ export function AdminHQ() {
                 </div>
               )}
 
-              {showOperatorModal && (
+                {showOperatorModal && (
                 <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
                   <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
                     <div className="p-4 border-b flex items-center justify-between">
@@ -679,11 +663,13 @@ export function AdminHQ() {
                     </div>
                   </div>
                 </div>
+                )}
+              </div>
               )}
+              {activeTab === 'security' && <SecurityCompliance />}
+              {activeTab === 'api' && <APIManagement />}
             </div>
-          )}
-          {activeTab === 'security' && <SecurityCompliance />}
-          {activeTab === 'api' && <APIManagement />}
+          </div>
         </div>
       </div>
       {/* Debug status bar (temp) */}

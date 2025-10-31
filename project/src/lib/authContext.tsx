@@ -19,6 +19,10 @@ type AuthContextType = {
   selectOrganization: (id: string | null, name?: string | null) => Promise<void>;
   canAccessOrganization: (id: string | null) => boolean;
   hasRole: (requiredRole: string) => boolean;
+  signUp: (args: { email: string; password: string; full_name?: string | null; phone?: string | null }) => Promise<{ error?: string }>;
+  signInWithPassword: (args: { email: string; password: string }) => Promise<{ error?: string; mfaRequired?: boolean; factorId?: string | null; challengeId?: string | null }>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,6 +34,10 @@ const AuthContext = createContext<AuthContextType>({
   selectOrganization: async () => {},
   canAccessOrganization: () => false,
   hasRole: () => false,
+  signUp: async () => ({}),
+  signInWithPassword: async () => ({}),
+  signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,13 +46,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentOrganization, setCurrentOrganization] = useState<{ id: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadSession = async () => {
-    const { data } = await supabase.auth.getSession();
-    setSession(data.session ?? null);
-    return data.session ?? null;
-  };
+  const signUp = useCallback(async (args: { email: string; password: string; full_name?: string | null; phone?: string | null }): Promise<{ error?: string }> => {
+    try {
+      const emailLower = args.email.trim().toLowerCase();
+      const { error } = await supabase.auth.signUp({
+        email: emailLower,
+        password: args.password,
+        options: { data: { full_name: args.full_name ?? null, phone: args.phone ?? null } },
+      });
+      if (error) return { error: error.message || 'Signup failed' };
+      // Éviter toute session active après inscription: forcer la déconnexion pour exiger une connexion explicite
+      try { await supabase.auth.signOut(); } catch {}
+      return {};
+    } catch (e: any) {
+      return { error: e?.message || 'Signup failed' };
+    }
+  }, []);
 
-  // Correction des types explicites pour éviter les `any`
+  const signInWithPassword = useCallback(async (args: { email: string; password: string }): Promise<{ error?: string }> => {
+    try {
+      const emailLower = args.email.trim().toLowerCase();
+      const { error } = await supabase.auth.signInWithPassword({ email: emailLower, password: args.password });
+      if (error) return { error: error.message || 'Login failed' };
+      return {};
+    } catch (e: any) {
+      return { error: e?.message || 'Login failed' };
+    }
+  }, []);
+
+  const signOut = useCallback(async (): Promise<void> => {
+    try {
+      await supabase.auth.signOut();
+      try { if (typeof localStorage !== 'undefined') localStorage.clear(); } catch {}
+      try { if (typeof sessionStorage !== 'undefined') sessionStorage.clear(); } catch {}
+    } catch {}
+  }, []);
+
+  // Fonction pour charger le profil utilisateur depuis la base de données
   const loadProfile = async (userId: string): Promise<AppProfile | null> => {
     try {
       const { data, error } = await supabase
@@ -86,17 +124,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Recharger le profil courant depuis la base (utile si le rôle a changé côté serveur)
+  const refreshProfile = useCallback(async () => {
+    try {
+      const { data: { session: current } } = await supabase.auth.getSession();
+      const userId = current?.user?.id || session?.user?.id || null;
+      if (!userId) return;
+      const p = await loadProfile(userId);
+      setProfile(p);
+    } catch {}
+  }, [session]);
+
   useEffect(() => {
     let mounted = true;
+    
+    // Vérifier s'il y a une session existante au démarrage
     (async () => {
       try {
-        const sess = await loadSession();
-        if (mounted && sess?.user?.id) {
-          await loadProfile(sess.user.id);
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(currentSession);
+          // Si une session existe, charger le profil
+          if (currentSession?.user?.id) {
+            await loadProfile(currentSession.user.id);
+          }
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('[Auth] Initial session load failed:', e);
+        console.error('[Auth] Failed to load session:', e);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -107,46 +161,111 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         event: import('@supabase/supabase-js').AuthChangeEvent,
         newSession: import('@supabase/supabase-js').Session | null,
       ) => {
-      setSession(newSession);
-      if (newSession?.user?.id) {
-        const p = await loadProfile(newSession.user.id);
-        // Si le profil a une organisation affectée, récupérer son nom et sélectionner comme entité active
-        if (p?.organizationId) {
-          try {
-            const { data: orgData, error: orgErr } = await supabase
-              .from('operators')
-              .select('id,name')
-              .eq('id', p.organizationId)
-              .maybeSingle();
-            if (!orgErr && orgData) {
-              setCurrentOrganization({ id: String(orgData.id), name: orgData.name });
-            } else {
-              // fallback: garder l'organizationId sans nom
-              setCurrentOrganization({ id: String(p.organizationId), name: (p.organizationName ?? p.organizationId) || 'Organisation' });
-            }
-          } catch (e) {
-            console.warn('Impossible de charger le nom de l\'organisation:', e);
-            setCurrentOrganization({ id: String(p.organizationId), name: p.organizationId });
+        setSession(newSession);
+
+        // Ne charger le profil QUE lors d'un SIGNED_IN puis rediriger selon le rôle
+        if (event === 'SIGNED_IN') {
+          // Ne jamais rediriger si on est sur une page d'auth (signup/register), pour éviter le "boom" après inscription
+          const h = (typeof window !== 'undefined' ? window.location.hash : '') || '';
+          if (h.startsWith('#/signup') || h.startsWith('#/register')) {
+            return;
           }
-        } else {
-          // pas d'organisation liée -> clear
-          setCurrentOrganization(null);
+          let p: AppProfile | null = null;
+          if (newSession?.user?.id) {
+            p = await loadProfile(newSession.user.id);
+            setProfile(p ?? null);
+          } else {
+            setProfile(null);
+          }
+
+          const localProfile = p ?? null;
+          const r = ((localProfile?.role) || '').toLowerCase();
+
+          // Si aucun profil ou role vide → ne pas rediriger
+          if (!localProfile || !r) {
+            return;
+          }
+
+          // MFA/OTP désactivés: aucune vérification supplémentaire
+
+          // Déterminer la cible selon le rôle
+          let target = '/passenger'; // Par défaut: passenger (PassengerApp)
+          if (r === 'superadmin' || r === 'super_admin') {
+            target = '/superadmin';
+          } else if (r === 'admin') {
+            target = '/admin/dashboard';
+          } else if (r === 'operator') {
+            target = '/operator/dashboard';
+          } else if (r === 'driver' || r === 'chauffeur') {
+            target = '/driver/dashboard';
+          } else if (r === 'passenger') {
+            target = '/passenger'; // PassengerApp pour les passengers
+          }
+
+          // Ajouter organization_id si nécessaire
+          const orgId = localProfile?.organizationId || null;
+          if (orgId && (r === 'operator' || r === 'admin')) {
+            target = `${target}?org=${encodeURIComponent(String(orgId))}`;
+          }
+
+          // Redirection immédiate
+          if (window.location.hash !== `#${target}`) {
+            window.location.hash = `#${target}`;
+          }
+
+          // Fallback rapide (500ms au lieu de 1200ms)
+          setTimeout(() => {
+            const h = window.location.hash || '';
+            if (!h || h === '#/' || h === '#/login') {
+              window.location.hash = `#${target}`;
+            }
+          }, 500);
+
+          return;
         }
 
-        if (event === 'SIGNED_IN') {
-          const target = (p?.role === 'admin' || p?.role === 'operator') ? '#/admin' : '#/';
-          if (location.hash !== target) {
-            location.hash = target;
-          }
+        if (event === 'SIGNED_OUT') {
+          try {
+            if (typeof localStorage !== 'undefined') localStorage.clear();
+            if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
+          } catch {}
+          try {
+            if (typeof document !== 'undefined') {
+              document.cookie.split(';').forEach(c => {
+                document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/');
+              });
+            }
+          } catch {}
+          window.location.hash = '#/';
+          return;
         }
-      } else {
-        setProfile(null);
+
+        // Lorsque le token est rafraîchi ou l'utilisateur mis à jour, recharger le profil pour refléter un rôle changé côté serveur
+        if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          await refreshProfile();
+          return;
+        }
       }
-    });
+    );
+
+    // Rafraîchir le profil au retour sur l'onglet (pour refléter un changement de rôle externe)
+    const onVisible = () => {
+      try {
+        if (document.visibilityState === 'visible' && session) {
+          refreshProfile();
+        }
+      } catch {}
+    };
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+      document.addEventListener('visibilitychange', onVisible);
+    }
 
     return () => {
       mounted = false;
       sub.subscription.unsubscribe();
+      if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+        document.removeEventListener('visibilitychange', onVisible);
+      }
     };
   }, []);
 
@@ -217,8 +336,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     currentOrganization,
     selectOrganization,
     canAccessOrganization,
-    hasRole
-  }), [session, profile, loading, currentOrganization, selectOrganization, canAccessOrganization, hasRole]);
+    hasRole,
+    signUp,
+    signInWithPassword,
+    signOut,
+    refreshProfile,
+  }), [session, profile, loading, currentOrganization, selectOrganization, canAccessOrganization, hasRole, signUp, signInWithPassword, signOut, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

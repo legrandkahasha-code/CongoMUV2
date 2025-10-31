@@ -36,8 +36,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
 
-    /* Suppress deprecation warnings */
-    "ignoreDeprecations": "6.0"
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "build"]

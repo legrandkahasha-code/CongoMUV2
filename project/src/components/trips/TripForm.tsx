@@ -1,28 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { CalendarIcon, Clock, MapPin, Bus, User, CreditCard, Info } from 'lucide-react';
+import { TripFormProps, TripFormData } from './TripForm.types';
+
 // Local helpers to avoid external date-fns dependency
-const addDays = (date, days) => {
+const addDays = (date: Date | string, days: number): Date => {
   const d = new Date(date instanceof Date ? date : new Date(date));
   d.setDate(d.getDate() + Number(days || 0));
   return d;
 };
-const formatDateInput = (date) => {
+
+const formatDateInput = (date: Date | string): string => {
   const d = new Date(date instanceof Date ? date : new Date(date));
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 };
-import { CalendarIcon, Clock, MapPin, Bus, User, CreditCard, Info } from 'lucide-react';
 
-const TripForm = ({ onSubmit, initialData = {}, isSubmitting = false, operators = [], vehicles = [] }) => {
-  const [departureDate, setDepartureDate] = useState(initialData.departureDate || new Date());
-  const [departureTime, setDepartureTime] = useState(initialData.departureTime || '08:00');
-  const [arrivalDate, setArrivalDate] = useState(initialData.arrivalDate || addDays(new Date(), 1));
-  const [arrivalTime, setArrivalTime] = useState(initialData.arrivalTime || '10:00');
-  const [selectedOperator, setSelectedOperator] = useState(initialData.operatorId || '');
+const TripForm: React.FC<TripFormProps> = ({ 
+  onSubmit, 
+  initialData = {}, 
+  isSubmitting = false, 
+  operators = [], 
+  vehicles = [],
+  routes = []
+}) => {
+  const [departureDate, setDepartureDate] = useState<Date>(
+    initialData.departureDate ? new Date(initialData.departureDate) : new Date()
+  );
+  const [departureTime, setDepartureTime] = useState<string>(initialData.departureTime || '08:00');
+  const [arrivalDate, setArrivalDate] = useState<Date>(
+    initialData.arrivalDate ? new Date(initialData.arrivalDate) : addDays(new Date(), 1)
+  );
+  const [arrivalTime, setArrivalTime] = useState<string>(initialData.arrivalTime || '10:00');
+  const [selectedOperator, setSelectedOperator] = useState<string>(initialData.operatorId || '');
   
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<TripFormData>({
     defaultValues: {
       routeId: initialData.routeId || '',
       vehicleId: initialData.vehicleId || '',
@@ -49,7 +63,7 @@ const TripForm = ({ onSubmit, initialData = {}, isSubmitting = false, operators 
 
   // Filtrer les véhicules par opérateur sélectionné
   const filteredVehicles = selectedOperator 
-    ? vehicles.filter(vehicle => vehicle.operatorId === selectedOperator)
+    ? vehicles.filter((vehicle) => vehicle.operatorId === selectedOperator)
     : [];
 
   // Gestion de la soumission du formulaire
@@ -148,22 +162,50 @@ const TripForm = ({ onSubmit, initialData = {}, isSubmitting = false, operators 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium">Date de départ *</label>
-              <input type="date" className="w-full px-3 py-2 border rounded" value={formatDateInput(departureDate)} onChange={(e) => setDepartureDate(new Date(e.target.value))} />
+              <input 
+                type="date" 
+                className="w-full px-3 py-2 border rounded" 
+                value={formatDateInput(departureDate)} 
+                onChange={(e) => setDepartureDate(new Date(e.target.value))} 
+                aria-label="Date de départ"
+                required
+              />
             </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium">Heure de départ *</label>
-              <input type="time" className="w-full px-3 py-2 border rounded" value={departureTime} onChange={(e) => setDepartureTime(e.target.value)} />
+              <input 
+                type="time" 
+                className="w-full px-3 py-2 border rounded" 
+                value={departureTime} 
+                onChange={(e) => setDepartureTime(e.target.value)} 
+                aria-label="Heure de départ"
+                required
+              />
             </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium">Date d'arrivée *</label>
-              <input type="date" className="w-full px-3 py-2 border rounded" value={formatDateInput(arrivalDate)} onChange={(e) => setArrivalDate(new Date(e.target.value))} />
+              <input 
+                type="date" 
+                className="w-full px-3 py-2 border rounded" 
+                value={formatDateInput(arrivalDate)} 
+                onChange={(e) => setArrivalDate(new Date(e.target.value))} 
+                aria-label="Date d'arrivée"
+                required
+              />
             </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-medium">Heure d'arrivée *</label>
-              <input type="time" className="w-full px-3 py-2 border rounded" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} />
+              <input 
+                type="time" 
+                className="w-full px-3 py-2 border rounded" 
+                value={arrivalTime} 
+                onChange={(e) => setArrivalTime(e.target.value)} 
+                aria-label="Heure d'arrivée"
+                required
+              />
             </div>
           </div>
         </div>
@@ -178,19 +220,16 @@ const TripForm = ({ onSubmit, initialData = {}, isSubmitting = false, operators 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="price" className="block text-sm font-medium">Prix (CDF) *</label>
-              <input id="price" type="number" min="0" step="0.01" className="w-full px-3 py-2 border rounded" {...register('price', { required: 'Le prix est requis' })} />
-              {errors.price && <p className="text-sm text-red-500">{errors.price.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="availableSeats" className="block text-sm font-medium">Places disponibles *</label>
-              <input id="availableSeats" type="number" min="1" className="w-full px-3 py-2 border rounded" {...register('availableSeats', { required: 'Le nombre de places est requis', min: { value: 1, message: 'Minimum 1 place' } })} />
-              {errors.availableSeats && <p className="text-sm text-red-500">{errors.availableSeats.message}</p>}
-            </div>
-          </div>
-        </div>
-
-        {/* Statut et Notes */}
+              <input 
+                id="price" 
+                type="number" 
+                min="0" 
+                step="0.01" 
+                className="w-full px-3 py-2 border rounded" 
+                aria-label="Prix en francs congolais"
+                placeholder="Entrez le prix"
+                {...register('price', { required: 'Le prix est requis' })} 
+              />
         <div className="space-y-4">
           <h3 className="text-lg font-medium flex items-center gap-2">
             <Info className="h-5 w-5" />
