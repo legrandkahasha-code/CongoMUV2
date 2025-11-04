@@ -3,7 +3,7 @@ import { useAuth } from './lib/authContext';
 import { Trip as ImportedTrip } from './types';
 import { cities } from './features/cities';
 import { formatTime, formatDuration } from './utils/passengerUtils';
-import { Ticket, ArrowRight, Clock, CheckCircle, MapPin } from 'lucide-react';
+import { Ticket, ArrowRight, Clock, CheckCircle, MapPin, ShieldCheck, Star } from 'lucide-react';
 import { BookingModal } from './components/BookingModal';
 import { MyTripsModal } from './components/MyTripsModal';
 import AuthButtons from './components/AuthButtons';
@@ -11,7 +11,7 @@ import AuthButtons from './components/AuthButtons';
 export default function App() {
   const { session } = useAuth();
   const isAuthenticated = !!session;
-  const [search, setSearch] = useState({ departure: '', arrival: '', date: '' });
+  const [search, setSearch] = useState({ departure: '', arrival: '', date: '', transport: '' });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [totalResults, setTotalResults] = useState<number | null>(null);
@@ -59,8 +59,11 @@ export default function App() {
   const filteredTrips = mockTrips.filter(trip => {
     const matchDeparture = search.departure ? trip.route?.departure_city?.toLowerCase().includes(search.departure.toLowerCase()) : true;
     const matchArrival = search.arrival ? trip.route?.arrival_city?.toLowerCase().includes(search.arrival.toLowerCase()) : true;
-    // Date filter can be added if needed
-    return matchDeparture && matchArrival;
+    const t = search.transport?.toLowerCase();
+    const matchTransport = t
+      ? (trip.route?.transport_type?.name?.toLowerCase().includes(t) || trip.route?.operator?.type?.toLowerCase().includes(t))
+      : true;
+    return matchDeparture && matchArrival && matchTransport;
   });
 
   // Handle search submit
@@ -108,68 +111,179 @@ export default function App() {
         <div className="text-2xl font-bold text-blue-700">CongoMuv</div>
         <div className="flex items-center gap-4">
           <AuthButtons />
-          {!isAuthenticated && (
-            <button
-              onClick={() => window.location.hash = '#/signup'}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition text-sm"
-            >
-              Inscription
-            </button>
-          )}
         </div>
       </header>
       <main className="flex-1">
         {/* Hero Section + Formulaire de recherche centré */}
-        <section className="bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white py-16 flex flex-col items-center justify-center">
-          <div className="max-w-2xl w-full px-4">
-            <h2 className="text-4xl font-bold mb-4 text-center">Voyagez en toute simplicité</h2>
-            <form className="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-4" onSubmit={handleSearch}>
-              <div className="flex flex-col sm:flex-row gap-4">
+        <section className="relative overflow-hidden bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 text-white py-16 flex flex-col items-center justify-center">
+          {/* Décor de fond subtil */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none -z-10">
+            <div className="absolute top-10 left-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
+            <div className="absolute -bottom-10 right-10 w-56 h-56 bg-blue-300 rounded-full blur-2xl"></div>
+            <div className="absolute top-1/2 left-1/3 w-72 h-72 bg-cyan-300 rounded-full blur-3xl"></div>
+          </div>
+          <div className="relative z-10 max-w-3xl w-full px-4">
+            <h2 className="text-4xl font-extrabold mb-3 text-center tracking-tight">Voyagez en toute simplicité</h2>
+            <p className="text-blue-100 text-center mb-6">Réservez, suivez et voyagez partout en RDC avec une expérience fluide et sécurisée.</p>
+            <form className="bg-white/95 backdrop-blur rounded-2xl shadow-xl p-6 flex flex-col gap-5 border border-slate-100 text-slate-900" onSubmit={handleSearch}>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="w-full">
-                  <label htmlFor="search-departure" className="sr-only">Ville de départ</label>
-                  <input
-                    id="search-departure"
-                    list="citiesList"
-                    className="border rounded-lg px-3 py-2 w-full"
-                    placeholder="Départ"
-                    value={search.departure}
-                    onChange={e => setSearch(s => ({ ...s, departure: e.target.value }))}
-                    required
-                  />
+                  <label htmlFor="search-transport" className="block text-sm font-medium text-slate-700 mb-1">Type de transport</label>
+                  <div className="relative">
+                    <select
+                      id="search-transport"
+                      className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-slate-900"
+                      value={search.transport}
+                      onChange={(e) => setSearch(s => ({ ...s, transport: e.target.value }))}
+                      title="Type de transport"
+                      aria-describedby="hint-transport"
+                    >
+                      <option value="">Tous les transports</option>
+                      <option value="bus">Bus</option>
+                      <option value="train">Train</option>
+                      <option value="fluvial">Fluvial</option>
+                      <option value="private">Privé</option>
+                    </select>
+                  </div>
+                  <p id="hint-transport" className="mt-1 text-xs text-slate-500">Filtrer (optionnel)</p>
                 </div>
                 <div className="w-full">
-                  <label htmlFor="search-arrival" className="sr-only">Ville d'arrivée</label>
-                  <input
-                    id="search-arrival"
-                    list="citiesList"
-                    className="border rounded-lg px-3 py-2 w-full"
-                    placeholder="Arrivée"
-                    value={search.arrival}
-                    onChange={e => setSearch(s => ({ ...s, arrival: e.target.value }))}
-                    required
-                  />
+                  <label htmlFor="search-departure" className="block text-sm font-medium text-slate-700 mb-1">Ville de départ</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                      <MapPin className="w-4 h-4" />
+                    </span>
+                    <input
+                      id="search-departure"
+                      list="citiesList"
+                      className="border border-slate-300 rounded-lg pl-9 pr-3 py-2 w-full bg-white text-slate-900 placeholder-slate-400 shadow-inner caret-sky-600 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      placeholder="Ex: Kinshasa"
+                      aria-describedby="hint-departure"
+                      title="Ville de départ"
+                      value={search.departure}
+                      onChange={e => setSearch(s => ({ ...s, departure: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <p id="hint-departure" className="mt-1 text-xs text-slate-500">Exemples: Kinshasa, Lubumbashi, Goma...</p>
                 </div>
                 <div className="w-full">
-                  <label htmlFor="search-date" className="sr-only">Date du trajet</label>
-                  <input
-                    id="search-date"
-                    type="date"
-                    className="border rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                    value={search.date}
-                    onChange={e => setSearch(s => ({ ...s, date: e.target.value }))}
-                    required
-                  />
+                  <label htmlFor="search-arrival" className="block text-sm font-medium text-slate-700 mb-1">Ville d'arrivée</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                      <MapPin className="w-4 h-4" />
+                    </span>
+                    <input
+                      id="search-arrival"
+                      list="citiesList"
+                      className="border rounded-lg pl-9 pr-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-slate-900 placeholder-slate-400"
+                      placeholder="Ex: Lubumbashi"
+                      aria-describedby="hint-arrival"
+                      title="Ville d'arrivée"
+                      value={search.arrival}
+                      onChange={e => setSearch(s => ({ ...s, arrival: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <p id="hint-arrival" className="mt-1 text-xs text-slate-500">Exemples: Matadi, Kolwezi, Bukavu...</p>
+                </div>
+                <div className="w-full">
+                  <label htmlFor="search-date" className="block text-sm font-medium text-slate-700 mb-1">Date du trajet</label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                      <Clock className="w-4 h-4" />
+                    </span>
+                    <input
+                      id="search-date"
+                      type="date"
+                      className="border rounded-lg pl-9 pr-3 py-2 w-full focus:ring-2 focus:ring-blue-600 focus:border-blue-600 bg-white text-slate-900 placeholder-slate-400"
+                      aria-describedby="hint-date"
+                      title="Date du trajet"
+                      value={search.date}
+                      onChange={e => setSearch(s => ({ ...s, date: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  <p id="hint-date" className="mt-1 text-xs text-slate-500">Sélectionnez votre date de départ</p>
                 </div>
               </div>
-              <button type="submit" className="bg-blue-700 text-white font-bold py-2 rounded-lg hover:bg-blue-800 transition">Rechercher</button>
+              <button type="submit" aria-label="Rechercher un trajet" className="bg-gradient-to-r from-blue-700 to-blue-600 text-white font-semibold py-3 rounded-xl hover:from-blue-800 hover:to-blue-700 transition shadow-lg">Rechercher</button>
             </form>
+            {/* CTA sous le formulaire */}
+            <div className="mt-4 flex items-center justify-center">
+              <a href="#results" className="inline-flex items-center space-x-2 px-5 py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-md">
+                <span>Découvrir nos trajets</span>
+                <ArrowRight className="w-5 h-5" />
+              </a>
+            </div>
           </div>
           <datalist id="citiesList">
             {cities.map(c => (<option key={c.id} value={c.name} />))}
           </datalist>
         </section>
+      {/* Avis clients */}
+      <section className="bg-white py-16 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h3 className="text-3xl font-bold text-slate-900 mb-2">Ce que disent nos clients</h3>
+            <div className="flex items-center justify-center space-x-1 text-sky-600">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="w-5 h-5 fill-current" />
+              ))}
+            </div>
+            <p className="text-slate-600 mt-2">Note moyenne 4.9/5</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50">
+              <div className="flex items-center space-x-1 text-sky-600 mb-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-current" />
+                ))}
+              </div>
+              <p className="text-slate-700">Réservation facile et rapide. Le QR code a été accepté sans problème à l’embarquement.</p>
+              <p className="mt-3 text-sm text-slate-500">— Sarah K.</p>
+            </div>
+            <div className="p-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50">
+              <div className="flex items-center space-x-1 text-sky-600 mb-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-current" />
+                ))}
+              </div>
+              <p className="text-slate-700">Interface claire et moderne. J’ai trouvé mon trajet en quelques secondes.</p>
+              <p className="mt-3 text-sm text-slate-500">— Daniel M.</p>
+            </div>
+            <div className="p-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50">
+              <div className="flex items-center space-x-1 text-sky-600 mb-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-current" />
+                ))}
+              </div>
+              <p className="text-slate-700">Service client réactif. Paiement sécurisé et confirmation instantanée.</p>
+              <p className="mt-3 text-sm text-slate-500">— Patrick L.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+        {/* Bandeau de confiance */}
+        <section className="bg-white/70 backdrop-blur border-y border-slate-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center space-x-2 text-slate-700">
+              <ShieldCheck className="w-6 h-6 text-sky-600" />
+              <span className="font-semibold">Paiements sécurisés</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-slate-600">Support 7j/7</span>
+            </div>
+            <div className="flex items-center gap-6 opacity-90">
+              <div className="text-slate-500 text-sm">TransCongo</div>
+              <div className="text-slate-500 text-sm">ONATRA</div>
+              <div className="text-slate-500 text-sm">Katanga Express</div>
+              <div className="text-slate-500 text-sm">Transport Fluvial</div>
+            </div>
+          </div>
+        </section>
+
         {/* Résultats de recherche */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <section id="results" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           {filteredTrips.length > 0 ? (
             <div>
               <div className="space-y-3 sm:space-y-4">
@@ -239,7 +353,8 @@ export default function App() {
                 <button
                   disabled={page === 1 || loading}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 disabled:opacity-50"
+                  aria-label="Page précédente"
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 disabled:opacity-50 hover:bg-slate-50"
                 >
                   Précédent
                 </button>
@@ -255,20 +370,12 @@ export default function App() {
                     Connexion
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    setTimeout(() => {
-                      window.location.hash = '#/signup';
-                    }, 100);
-                  }}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 transition text-sm"
-                >
-                  Inscription
-                </button>
+                {/* Inscription gérée par AuthButtons dans le header pour éviter les doublons */}
                 <button
                   disabled={(typeof totalResults === 'number' ? (page * 10) >= totalResults : filteredTrips.length < 10) || loading}
                   onClick={() => setPage(p => p + 1)}
-                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 disabled:opacity-50"
+                  aria-label="Page suivante"
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 disabled:opacity-50 hover:bg-slate-50"
                 >
                   Suivant
                 </button>
@@ -296,23 +403,23 @@ export default function App() {
             Pourquoi choisir CongoMuv ?
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-blue-700" />
+            <div className="text-center rounded-2xl p-8 border border-slate-200 bg-gradient-to-br from-white to-blue-50 hover:shadow-lg transition">
+              <div className="bg-gradient-to-br from-blue-600 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-md">
+                <CheckCircle className="w-8 h-8" />
               </div>
               <h4 className="text-xl font-bold text-slate-900 mb-2">Réservation simple</h4>
               <p className="text-slate-600">Réservez vos billets en quelques clics, où que vous soyez</p>
             </div>
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Ticket className="w-8 h-8 text-blue-700" />
+            <div className="text-center rounded-2xl p-8 border border-slate-200 bg-gradient-to-br from-white to-indigo-50 hover:shadow-lg transition">
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-md">
+                <Ticket className="w-8 h-8" />
               </div>
               <h4 className="text-xl font-bold text-slate-900 mb-2">Billets électroniques</h4>
               <p className="text-slate-600">Recevez votre billet par email et SMS avec QR code sécurisé</p>
             </div>
-            <div className="text-center">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-8 h-8 text-blue-700" />
+            <div className="text-center rounded-2xl p-8 border border-slate-200 bg-gradient-to-br from-white to-cyan-50 hover:shadow-lg transition">
+              <div className="bg-gradient-to-br from-cyan-600 to-cyan-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-md">
+                <Clock className="w-8 h-8" />
               </div>
               <h4 className="text-xl font-bold text-slate-900 mb-2">Suivi en temps réel</h4>
               <p className="text-slate-600">Suivez votre voyage en direct avec notre système GPS</p>

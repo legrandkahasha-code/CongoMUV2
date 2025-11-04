@@ -38,14 +38,22 @@ const useToast = () => {
     };
     toastEl.style.backgroundColor = colors[type] || colors.info;
     
-    // Ajouter au DOM
-    document.body.appendChild(toastEl);
+    // Ajouter au DOM (éviter les doublons en StrictMode)
+    if (!document.body.contains(toastEl)) {
+      document.body.appendChild(toastEl);
+    }
     
-    // Supprimer après 5 secondes
+    // Supprimer après 5 secondes (avec garde parentNode)
     setTimeout(() => {
       toastEl.style.animation = 'slideOut 0.3s ease-in';
       setTimeout(() => {
-        document.body.removeChild(toastEl);
+        try {
+          if (toastEl && toastEl.parentNode) {
+            toastEl.parentNode.removeChild(toastEl);
+          }
+        } catch (e) {
+          // no-op: le noeud peut déjà être supprimé par un autre cycle
+        }
       }, 300);
     }, 5000);
   }, []);

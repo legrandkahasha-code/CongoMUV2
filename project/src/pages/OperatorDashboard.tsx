@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
   Users, 
-  MapPin,
+  MapPin, 
   Calendar,
   LogOut
 } from 'lucide-react';
@@ -206,42 +206,6 @@ export function OperatorDashboard() {
           <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Total Trips */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <span className="text-2xl">🚛</span>
-                  </div>
-                  <span className="text-sm font-medium text-green-600">+12%</span>
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900">{stats.totalTrips}</h3>
-                <p className="text-sm text-slate-600 mt-1">Trajets totaux</p>
-              </div>
-
-              {/* Active Trips */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <span className="text-2xl">📈</span>
-                  </div>
-                  <span className="text-sm font-medium text-blue-700">Actifs</span>
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900">{stats.activeTrips}</h3>
-                <p className="text-sm text-slate-600 mt-1">Trajets en cours</p>
-              </div>
-
-              {/* Total Bookings */}
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="bg-purple-100 p-3 rounded-lg">
-                    <Users className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <span className="text-sm font-medium text-purple-600">+8%</span>
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900">{stats.totalBookings}</h3>
-                <p className="text-sm text-slate-600 mt-1">Réservations</p>
-              </div>
-
               {/* Revenue */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                 <div className="flex items-center justify-between mb-4">

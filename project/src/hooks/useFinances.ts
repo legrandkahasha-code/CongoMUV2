@@ -37,7 +37,7 @@ export const useFinances = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTransactions = async (filter = 'all') => {
+  const fetchTransactions = async () => {
     setLoading(true);
     setError(null);
     

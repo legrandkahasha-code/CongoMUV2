@@ -1,43 +1,46 @@
 import { useAuth } from '../lib/authContext';
 
 export default function AuthButtons() {
-  const { profile, loading } = useAuth();
-  // Removed unused local states
+  const { session, profile, signOut } = useAuth();
 
-  const signOut = () => {
-    (window as any).__signOut?.();
-  };
-
-  if (loading) {
-    return <span className="text-slate-500 text-sm">Chargement...</span>;
-  }
-
-  if (profile) {
+  // Afficher directement les boutons de connexion/inscription
+  // Le chargement du profil se fera après la connexion
+  if (!session) {
     return (
       <div className="flex items-center space-x-3">
-        <span className="text-slate-700 text-sm hidden sm:inline">
-          {profile.name || 'Compte'} {profile.organizationName ? `· ${profile.organizationName}` : ''}
-        </span>
-        <button 
-          onClick={() => { window.location.hash = '#/'; }} 
-          className="flex items-center space-x-2 text-slate-700 hover:text-blue-600 font-medium transition text-sm"
+        <button
+          onClick={() => { window.location.hash = '#/login'; }}
+          className="text-slate-700 hover:text-blue-600 font-medium transition text-sm"
         >
-          <span>Accueil</span>
+          Connexion
         </button>
-        <button onClick={signOut} className="flex items-center space-x-2 text-slate-700 hover:text-red-600 font-medium transition text-sm">
-          <span>Déconnexion</span>
+        <button
+          onClick={() => { window.location.hash = '#/signup'; }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm"
+        >
+          S'inscrire
         </button>
       </div>
     );
   }
 
+  // Si l'utilisateur est connecté, afficher les options de compte
   return (
-    <div className="flex items-center space-x-2">
-      <button
-        onClick={() => { window.location.hash = '#/login'; }}
-        className="flex items-center space-x-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 sm:px-4 py-2 rounded-lg font-medium hover:from-emerald-700 hover:to-teal-700 transition text-sm"
+    <div className="flex items-center space-x-4">
+      <span className="text-slate-700 text-sm hidden sm:inline">
+        {profile?.name || 'Mon compte'}
+      </span>
+      <button 
+        onClick={() => { window.location.hash = '/'; }} 
+        className="text-slate-700 hover:text-blue-600 font-medium transition text-sm"
       >
-        <span>Connexion</span>
+        Tableau de bord
+      </button>
+      <button 
+        onClick={signOut} 
+        className="text-slate-700 hover:text-red-600 font-medium transition text-sm"
+      >
+        Déconnexion
       </button>
     </div>
   );

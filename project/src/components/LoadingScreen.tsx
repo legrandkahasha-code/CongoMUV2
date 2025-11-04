@@ -1,11 +1,15 @@
-export default function LoadingScreen() {
+interface LoadingScreenProps {
+  message?: string;
+}
+
+export default function LoadingScreen({ message = "Chargement de l'application..." }: LoadingScreenProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-slate-100">
       <div className="text-center">
         {/* Logo ou nom de l'application */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-blue-700 mb-2">CongoMuv</h1>
-          <p className="text-slate-600">Chargement de l'application...</p>
+          <p className="text-slate-600">{message}</p>
         </div>
         
         {/* Spinner animé */}

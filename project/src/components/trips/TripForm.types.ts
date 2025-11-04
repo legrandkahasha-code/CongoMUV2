@@ -42,4 +42,5 @@ export interface TripFormProps {
   routes: Route[];
   onSubmit: (data: TripFormData) => void | Promise<void>;
   onCancel?: () => void;
+  isSubmitting?: boolean; // Added isSubmitting property
 }

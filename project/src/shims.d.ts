@@ -23,6 +23,16 @@ declare module 'lucide-react' {
   export const Eye: React.ComponentType<any>;
   export const EyeOff: React.ComponentType<any>;
   export const AlertCircle: React.ComponentType<any>;
+  export const Shield: React.ComponentType<any>;
+  export const ShieldCheck: React.ComponentType<any>;
+  export const Star: React.ComponentType<any>;
+  export const Search: React.ComponentType<any>;
+  export const Quote: React.ComponentType<any>;
+  export const Award: React.ComponentType<any>;
+  export const Zap: React.ComponentType<any>;
+  export const Globe: React.ComponentType<any>;
+  export const Globe2: React.ComponentType<any>;
+  export const ChevronRight: React.ComponentType<any>;
   // fallback
   const Icon: React.ComponentType<any>;
   export default Icon;

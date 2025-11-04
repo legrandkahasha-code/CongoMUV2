@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FC } from 'react';
+import QRCode from 'qrcode';
 import { X, QrCode, CheckCircle } from 'lucide-react';
 
 interface DigitalTicketModalProps {
@@ -17,6 +18,8 @@ interface Ticket {
       departure_city: string;
       arrival_city: string;
       departure_time: string;
+      vehicle_number?: string;
+      operator_name?: string;
     };
     passenger_details: Array<{
       full_name: string;
@@ -28,7 +31,23 @@ interface Ticket {
   sms_sent: boolean;
 }
 
-export function DigitalTicketModal({ bookingId, onClose }: DigitalTicketModalProps) {
+ 
+
+export const DigitalTicketModal: FC<DigitalTicketModalProps> = ({ bookingId, onClose }) => {
+  if (!bookingId) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+          <h3 className="text-lg font-medium text-gray-900">Erreur</h3>
+          <p className="mt-2 text-sm text-gray-600">Aucun identifiant de réservation fourni.</p>
+          <div className="mt-4 flex justify-end">
+            <button onClick={onClose} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Fermer</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,451 +55,185 @@ export function DigitalTicketModal({ bookingId, onClose }: DigitalTicketModalPro
   const [sendingSMS, setSendingSMS] = useState(false);
 
   useEffect(() => {
-    loadTicket();
-  }, [bookingId]);
-
-  const loadTicket = async () => {
-    try {
-      // Générer un vrai QR code scannable avec les informations du billet
-      const generateRealQRCode = (ticketData: any) => {
-        // Créer les données JSON complètes du billet pour le QR code
-        const qrData = {
-          type: 'CONGOMUV_TICKET',
-          ticket_reference: ticketData.ticket_reference,
-          booking_reference: ticketData.booking_reference,
-          passenger_count: ticketData.passengers?.length || 1,
-          departure_city: ticketData.departure_city,
-          arrival_city: ticketData.arrival_city,
-          departure_time: ticketData.departure_time,
-          total_amount: ticketData.total_amount,
-          passengers: ticketData.passengers || [],
-          vehicle_number: ticketData.vehicle_number || 'N/A',
-          operator: ticketData.operator || 'CongoMuv',
-          issued_at: new Date().toISOString(),
-          expires_at: ticketData.expires_at,
-          verification_url: `https://congomuv.cd/verify/${ticketData.ticket_reference}`,
-          status: 'valid'
-        };
-        
-        // Convertir en JSON string pour le QR code
-        const qrString = JSON.stringify(qrData);
-        
-        // Générer un QR code avec Canvas (simulation d'une vraie librairie QR)
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return '';
-        
-        canvas.width = 256;
-        canvas.height = 256;
-        
-        // Fond blanc
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 256, 256);
-        
-        // Générer un motif QR plus réaliste basé sur les données
-        ctx.fillStyle = '#000000';
-        const hash = qrString.split('').reduce((a, b) => {
-          a = ((a << 5) - a) + b.charCodeAt(0);
-          return a & a;
-        }, 0);
-        
-        // Créer un motif pseudo-aléatoire basé sur les données
-        for (let i = 0; i < 32; i++) {
-          for (let j = 0; j < 32; j++) {
-            const seed = (hash + i * 32 + j) % 1000;
-            if (seed % 3 === 0 || (i < 8 && j < 8) || (i > 24 && j < 8) || (i < 8 && j > 24)) {
-              ctx.fillRect(i * 8, j * 8, 8, 8);
-            }
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const stored = localStorage.getItem(`ticket_${bookingId}`);
+        if (stored) {
+          const parsed: Ticket = JSON.parse(stored);
+          if (!parsed.qr_code) {
+            try {
+              const payload = {
+                t: 'CongoMuvTicket',
+                id: parsed.id,
+                ref: parsed.ticket_reference,
+                booking_ref: parsed.booking.booking_reference,
+                route: `${parsed.booking.trip.departure_city}->${parsed.booking.trip.arrival_city}`,
+                dt: parsed.booking.trip.departure_time,
+                exp: parsed.expiration_date
+              };
+              parsed.qr_code = await QRCode.toDataURL(JSON.stringify(payload), { errorCorrectionLevel: 'M', margin: 1, width: 240 });
+              localStorage.setItem(`ticket_${bookingId}`, JSON.stringify(parsed));
+            } catch {}
           }
+          setTicket(parsed);
+          setLoading(false);
+          return;
         }
-        
-        // Ajouter les carrés de positionnement (coins)
-        const drawPositionSquare = (x: number, y: number) => {
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(x, y, 56, 56);
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(x + 8, y + 8, 40, 40);
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(x + 16, y + 16, 24, 24);
-        };
-        
-        drawPositionSquare(0, 0);     // Coin haut-gauche
-        drawPositionSquare(200, 0);   // Coin haut-droite
-        drawPositionSquare(0, 200);   // Coin bas-gauche
-        
-        return canvas.toDataURL();
-      };
-
-      // Données de démonstration pour les tickets
-      const demoTickets: { [key: string]: Ticket } = {
-        'booking-demo-1': {
-          id: 'ticket-demo-1',
-          ticket_reference: 'TK-CM-2024-001',
-          qr_code: generateRealQRCode({
-            ticket_reference: 'TK-CM-2024-001',
-            booking_reference: 'CM-2024-001',
-            passenger_count: 2,
-            departure_city: 'Kinshasa',
-            arrival_city: 'Lubumbashi',
-            departure_time: new Date(Date.now() + 24*60*60*1000).toISOString(),
-            total_amount: 300000,
-            passengers: [{ full_name: 'Jean Kabongo', age: 35 }, { full_name: 'Marie Kabongo', age: 32 }],
-            vehicle_number: 'TC-001',
-            operator: 'TransCongo Express',
-            expires_at: new Date(Date.now() + 30*24*60*60*1000).toISOString()
-          }),
-          expiration_date: new Date(Date.now() + 30*24*60*60*1000).toISOString(), // 30 jours
+        const demoBookings = JSON.parse(localStorage.getItem('demo_bookings') || '[]');
+        const booking = demoBookings.find((b: any) => String(b.id) === String(bookingId));
+        if (!booking) throw new Error('Réservation non trouvée');
+        const newTicket: Ticket = {
+          id: `ticket-${bookingId}`,
+          ticket_reference: `TK-CM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          qr_code: '',
+          expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           booking: {
-            booking_reference: 'CM-2024-001',
-            trip: {
-              departure_city: 'Kinshasa',
-              arrival_city: 'Lubumbashi',
-              departure_time: new Date(Date.now() + 24*60*60*1000).toISOString()
+            booking_reference: String(bookingId),
+            trip: booking.trip || {
+              departure_city: booking.departure_city || 'Ville de départ',
+              arrival_city: booking.arrival_city || "Ville d'arrivée",
+              departure_time: booking.departure_time || new Date().toISOString(),
+              vehicle_number: booking.trip?.vehicle_number || `TC-${Math.floor(100 + Math.random() * 900)}`,
+              operator_name: booking.trip?.operator_name || 'CongoMuv'
             },
-            passenger_details: [
-              { full_name: 'Jean Kabongo', age: 35 },
-              { full_name: 'Marie Kabongo', age: 32 }
-            ],
-            total_amount: 300000
-          },
-          email_sent: true,
-          sms_sent: true
-        },
-        'booking-demo-2': {
-          id: 'ticket-demo-2',
-          ticket_reference: 'TK-CM-2024-002',
-          qr_code: generateRealQRCode({
-            ticket_reference: 'TK-CM-2024-002',
-            booking_reference: 'CM-2024-002',
-            passenger_count: 1,
-            departure_city: 'Kinshasa',
-            arrival_city: 'Matadi',
-            departure_time: new Date(Date.now() + 7*24*60*60*1000).toISOString(),
-            total_amount: 35000,
-            passengers: [{ full_name: 'Pierre Mbuyi', age: 28 }],
-            vehicle_number: 'KT-205',
-            operator: 'Kinshasa Transport',
-            expires_at: new Date(Date.now() + 45*24*60*60*1000).toISOString()
-          }),
-          expiration_date: new Date(Date.now() + 45*24*60*60*1000).toISOString(),
-          booking: {
-            booking_reference: 'CM-2024-002',
-            trip: {
-              departure_city: 'Kinshasa',
-              arrival_city: 'Matadi',
-              departure_time: new Date(Date.now() + 7*24*60*60*1000).toISOString()
-            },
-            passenger_details: [
-              { full_name: 'Pierre Mbuyi', age: 28 }
-            ],
-            total_amount: 35000
-          },
-          email_sent: true,
-          sms_sent: false
-        },
-        'booking-demo-3': {
-          id: 'ticket-demo-3',
-          ticket_reference: 'TK-CM-2024-003',
-          qr_code: generateRealQRCode({
-            ticket_reference: 'TK-CM-2024-003',
-            booking_reference: 'CM-2024-003',
-            passenger_count: 3,
-            departure_city: 'Kinshasa',
-            arrival_city: 'Goma',
-            departure_time: new Date(Date.now() - 7*24*60*60*1000).toISOString(),
-            total_amount: 360000,
-            passengers: [
-              { full_name: 'Sarah Nzuzi', age: 25 },
-              { full_name: 'Paul Nzuzi', age: 30 },
-              { full_name: 'Emma Nzuzi', age: 8 }
-            ],
-            vehicle_number: 'TRAIN-01',
-            operator: 'ONATRA Train',
-            expires_at: new Date(Date.now() - 7*24*60*60*1000).toISOString()
-          }),
-          expiration_date: new Date(Date.now() - 7*24*60*60*1000).toISOString(), // Expiré
-          booking: {
-            booking_reference: 'CM-2024-003',
-            trip: {
-              departure_city: 'Kinshasa',
-              arrival_city: 'Goma',
-              departure_time: new Date(Date.now() - 7*24*60*60*1000).toISOString()
-            },
-            passenger_details: [
-              { full_name: 'Sarah Nzuzi', age: 25 },
-              { full_name: 'Paul Nzuzi', age: 30 },
-              { full_name: 'Emma Nzuzi', age: 8 }
-            ],
-            total_amount: 360000
-          },
-          email_sent: true,
-          sms_sent: true
-        },
-        'booking-demo-4': {
-          id: 'ticket-demo-4',
-          ticket_reference: 'TK-CM-2024-004',
-          qr_code: generateRealQRCode({
-            ticket_reference: 'TK-CM-2024-004',
-            booking_reference: 'CM-2024-004',
-            passenger_count: 1,
-            departure_city: 'Kinshasa',
-            arrival_city: 'Kisangani',
-            departure_time: new Date(Date.now() + 3*24*60*60*1000).toISOString(),
-            total_amount: 80000,
-            passengers: [{ full_name: 'Marie Lukeni', age: 42 }],
-            vehicle_number: 'BOAT-12',
-            operator: 'Transport Fluvial',
-            expires_at: new Date(Date.now() + 10*24*60*60*1000).toISOString()
-          }),
-          expiration_date: new Date(Date.now() + 10*24*60*60*1000).toISOString(),
-          booking: {
-            booking_reference: 'CM-2024-004',
-            trip: {
-              departure_city: 'Kinshasa',
-              arrival_city: 'Kisangani',
-              departure_time: new Date(Date.now() + 3*24*60*60*1000).toISOString()
-            },
-            passenger_details: [
-              { full_name: 'Marie Lukeni', age: 42 }
-            ],
-            total_amount: 80000
+            passenger_details: booking.passenger_details || [{ full_name: 'Passager', age: 30 }],
+            total_amount: booking.total_amount || 0
           },
           email_sent: false,
           sms_sent: false
-        }
-      };
-
-      // Vérifier d'abord les tickets locaux
-      const localTickets = JSON.parse(localStorage.getItem('demo_tickets') || '[]');
-      const localBookings = JSON.parse(localStorage.getItem('demo_bookings') || '[]');
-      
-      // Chercher le ticket local correspondant
-      const localTicket = localTickets.find((t: any) => t.booking_id === bookingId);
-      const localBooking = localBookings.find((b: any) => b.id === bookingId);
-      
-      // Simuler un délai de chargement
-      setTimeout(() => {
-        if (localTicket && localBooking) {
-          // Créer un ticket à partir des données locales
-          const ticket: Ticket = {
-            id: localTicket.id,
-            ticket_reference: localTicket.reference,
-            qr_code: generateRealQRCode({
-              ticket_reference: localTicket.reference,
-              booking_reference: localBooking.reference,
-              passenger_count: localBooking.number_of_passengers,
-              departure_city: localBooking.trip.departure_city,
-              arrival_city: localBooking.trip.arrival_city,
-              departure_time: localBooking.trip.departure_time,
-              total_amount: localBooking.total_amount,
-              passengers: localBooking.passenger_details,
-              vehicle_number: localBooking.trip.vehicle_number || 'N/A',
-              operator: localBooking.trip.operator_name || 'CongoMuv',
-              expires_at: localBooking.expires_at
-            }),
-            expiration_date: localBooking.expires_at,
-            booking: {
-              booking_reference: localBooking.reference,
-              trip: {
-                departure_city: localBooking.trip.departure_city,
-                arrival_city: localBooking.trip.arrival_city,
-                departure_time: localBooking.trip.departure_time
-              },
-              passenger_details: localBooking.passenger_details,
-              total_amount: localBooking.total_amount
-            },
-            email_sent: localTicket.email_sent,
-            sms_sent: localTicket.sms_sent
+        };
+        try {
+          const payload = {
+            t: 'CongoMuvTicket',
+            id: newTicket.id,
+            ref: newTicket.ticket_reference,
+            booking_ref: newTicket.booking.booking_reference,
+            route: `${newTicket.booking.trip.departure_city}->${newTicket.booking.trip.arrival_city}`,
+            dt: newTicket.booking.trip.departure_time,
+            exp: newTicket.expiration_date
           };
-          setTicket(ticket);
-        } else {
-          // Utiliser les données de démonstration par défaut
-          const demoTicket = demoTickets[bookingId];
-          if (demoTicket) {
-            setTicket(demoTicket);
-          } else {
-            setError('Ticket non trouvé');
-          }
-        }
+          newTicket.qr_code = await QRCode.toDataURL(JSON.stringify(payload), { errorCorrectionLevel: 'M', margin: 1, width: 240 });
+        } catch {}
+        localStorage.setItem(`ticket_${bookingId}`, JSON.stringify(newTicket));
+        setTicket(newTicket);
+      } catch (e) {
+        setError('Impossible de charger le ticket. Veuillez réessayer.');
+      } finally {
         setLoading(false);
-      }, 1000);
-      
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
-  const downloadTicket = () => {
-    if (!ticket) return;
-
-    // Créer un billet compact et professionnel
-    const createProfessionalTicket = () => {
-      const ticketHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Billet CongoMuv - ${ticket.ticket_reference}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 10px; }
-        .ticket {
-            max-width: 400px; margin: 0 auto; background: white;
-            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 2px dashed #059669;
-        }
-        .header {
-            background: #059669; color: white; padding: 15px; text-align: center;
-            border-radius: 6px 6px 0 0;
-        }
-        .logo { font-size: 20px; font-weight: bold; }
-        .ref { font-size: 12px; opacity: 0.9; margin-top: 5px; }
-        .content { padding: 15px; }
-        .route {
-            text-align: center; margin-bottom: 15px; padding: 10px;
-            background: #f0fdf4; border-radius: 6px;
-        }
-        .cities { font-size: 16px; font-weight: bold; color: #047857; }
-        .arrow { margin: 0 10px; color: #059669; }
-        .info { margin-bottom: 15px; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 14px; }
-        .label { color: #666; }
-        .value { font-weight: bold; }
-        .passengers {
-            background: #f9fafb; padding: 10px; border-radius: 6px; margin-bottom: 15px;
-        }
-        .passenger { font-size: 14px; margin-bottom: 3px; }
-        .total {
-            text-align: center; font-size: 18px; font-weight: bold;
-            color: #059669; margin-bottom: 15px;
-        }
-        .qr-section { text-align: center; margin-bottom: 15px; }
-        .qr-code { width: 120px; height: 120px; border: 2px solid #059669; border-radius: 6px; }
-        .footer {
-            background: #f8f9fa; padding: 10px; text-align: center;
-            font-size: 11px; color: #666; border-radius: 0 0 6px 6px;
-        }
-    </style>
-</head>
-<body>
-    <div class="ticket">
-        <div class="header">
-            <div class="logo">🚌 CONGOMUV</div>
-            <div class="ref">${ticket.ticket_reference}</div>
-        </div>
-        
-        <div class="content">
-            <div class="route">
-                <span class="cities">${ticket.booking.trip.departure_city}</span>
-                <span class="arrow">→</span>
-                <span class="cities">${ticket.booking.trip.arrival_city}</span>
-            </div>
-            
-            <div class="info">
-                <div class="info-row">
-                    <span class="label">Départ:</span>
-                    <span class="value">${new Date(ticket.booking.trip.departure_time).toLocaleDateString('fr-FR')}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Référence:</span>
-                    <span class="value">${ticket.booking.booking_reference}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Passagers:</span>
-                    <span class="value">${ticket.booking.passenger_details.length}</span>
-                </div>
-                <div class="info-row">
-                    <span class="label">Expire le:</span>
-                    <span class="value">${new Date(ticket.expiration_date).toLocaleDateString('fr-FR')}</span>
-                </div>
-            </div>
-            
-            <div class="passengers">
-                <strong style="font-size: 12px; color: #047857;">PASSAGERS:</strong><br>
-                ${ticket.booking.passenger_details.map((p, i) => `
-                    <div class="passenger">${i + 1}. ${p.full_name} (${p.age} ans)</div>
-                `).join('')}
-            </div>
-            
-            <div class="total">
-                ${ticket.booking.total_amount.toLocaleString()} FC
-            </div>
-            
-            <div class="qr-section">
-                <img src="${ticket.qr_code}" alt="QR Code" class="qr-code">
-                <div style="font-size: 11px; color: #666; margin-top: 5px;">
-                    Présentez ce code à l'embarquement
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            CongoMuv | Support: +243 123 456 789
-        </div>
-    </div>
-</body>
-</html>`;
-      
-      return ticketHTML;
+      }
     };
-
-    // Créer et télécharger le billet HTML
-    const ticketHTML = createProfessionalTicket();
-    const blob = new Blob([ticketHTML], { type: 'text/html' });
+    load();
+  }, [bookingId]);
+  
+  // Téléchargement HTML (fallback sûr, ouvre dans un nouvel onglet)
+  const handleDownloadTicket = async (): Promise<void> => {
+    if (!ticket) return;
+    const trip = ticket.booking.trip;
+    const passengers = ticket.booking.passenger_details || [];
+    const totalAmount = ticket.booking.total_amount || 0;
+    const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><title>Billet ${ticket.ticket_reference}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>body{font-family:Arial,sans-serif;background:#f5f5f5;padding:10px} .ticket{max-width:420px;margin:0 auto;background:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.15);border:2px dashed #059669} .header{background:#059669;color:#fff;padding:16px;border-radius:6px 6px 0 0;text-align:center} .ref{font-size:12px;opacity:.9;margin-top:4px} .content{padding:16px} .route{text-align:center;margin-bottom:12px;padding:8px;background:#f0fdf4;border-radius:6px} .cities{font-size:16px;font-weight:bold;color:#047857} .info-row{display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px} .label{color:#666} .value{font-weight:600} .passenger{font-size:14px;margin-bottom:3px} .total{text-align:center;font-size:18px;font-weight:bold;color:#059669;margin:12px 0} .qr{display:flex;justify-content:center;margin:10px 0} .footer{background:#f8f9fa;padding:10px;text-align:center;font-size:11px;color:#666;border-radius:0 0 6px 6px}</style>
+</head><body>
+<div class="ticket">
+  <div class="header">
+    <div>🚌 CONGOMUV</div>
+    <div class="ref">${ticket.ticket_reference}</div>
+  </div>
+  <div class="content">
+    <div class="route">
+      <div class="cities">${trip.departure_city} → ${trip.arrival_city}</div>
+    </div>
+    <div class="info">
+      <div class="info-row"><span class="label">Départ:</span><span class="value">${new Date(trip.departure_time).toLocaleString('fr-FR')}</span></div>
+      <div class="info-row"><span class="label">Référence:</span><span class="value">${ticket.booking.booking_reference}</span></div>
+      <div class="info-row"><span class="label">Passagers:</span><span class="value">${passengers.length}</span></div>
+      <div class="info-row"><span class="label">Expire le:</span><span class="value">${new Date(ticket.expiration_date).toLocaleDateString('fr-FR')}</span></div>
+    </div>
+    <div>
+      ${passengers.map((p, i) => `<div class="passenger">${i + 1}. ${p.full_name} (${p.age} ans)</div>`).join('')}
+    </div>
+    <div class="total">${totalAmount.toLocaleString('fr-FR')} CDF</div>
+    <div class="qr">${ticket.qr_code ? `<img src="${ticket.qr_code}" alt="QR Code" style="width:120px;height:120px;border:2px solid #059669;border-radius:6px;"/>` : '<div style="width:120px;height:120px;border:2px solid #ccc;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#999;font-size:12px;">QR indisponible</div>'}</div>
+  </div>
+  <div class="footer">CongoMuv | Support: +243 123 456 789</div>
+</div>
+</body></html>`;
+    const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `billet-congomuv-${ticket.ticket_reference}.html`;
+    a.rel = 'noopener';
+    a.target = '_blank';
     a.click();
     URL.revokeObjectURL(url);
   };
+  
 
-  const resendEmail = async () => {
+  const handleResendEmail = async (): Promise<void> => {
+    if (!ticket) return;
+    
     setSendingEmail(true);
     
-    // Simulation d'envoi d'email
-    setTimeout(() => {
-      if (ticket) {
-        ticket.email_sent = true;
-        setTicket({ ...ticket });
-      }
-      alert('✅ Email envoyé avec succès!\n\n📧 Destinataire: jean.kabongo@example.cd\n📄 Contenu: Billet électronique CongoMuv avec QR code\n⏰ Envoyé à: ' + new Date().toLocaleTimeString('fr-FR'));
+    try {
+      // Simulation d'envoi d'email
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setTicket({ ...ticket, email_sent: true });
+      alert('✅ Email envoyé avec succès!');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      setError('Erreur lors de l\'envoi de l\'email');
+    } finally {
       setSendingEmail(false);
-    }, 2000);
+    }
   };
 
-  const resendSMS = async () => {
+  const handleResendSMS = async (): Promise<void> => {
+    if (!ticket) return;
+
     setSendingSMS(true);
-    
-    // Simulation d'envoi de SMS
-    setTimeout(() => {
-      if (ticket) {
-        ticket.sms_sent = true;
-        setTicket({ ...ticket });
-      }
-      alert('✅ SMS envoyé avec succès!\n\n📱 Destinataire: +243 81 234 5678\n💬 Message: "Votre billet CongoMuv est prêt! Réf: ' + ticket?.ticket_reference + '. Présentez le QR code à l\'embarquement."\n⏰ Envoyé à: ' + new Date().toLocaleTimeString('fr-FR'));
+    try {
+      // Simulation d'envoi de SMS
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setTicket({ ...ticket, sms_sent: true });
+      alert('✅ SMS envoyé avec succès!');
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      setError('Erreur lors de l\'envoi du SMS');
+    } finally {
       setSendingSMS(false);
-    }, 1500);
+    }
   };
 
+  // Gestion de l'état de chargement
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-slate-600">Chargement du ticket...</p>
+        <div className="bg-white p-6 rounded-lg shadow-xl">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span>Chargement du ticket...</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !ticket) {
+  // Gestion de l'absence de ticket
+  if (!ticket) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-2xl p-8 max-w-md">
-          <p className="text-red-600 mb-4">❌ {error || 'Ticket introuvable'}</p>
-          <button onClick={onClose} className="w-full px-4 py-2 bg-slate-200 rounded-lg">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-6 text-center max-w-md w-full">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Erreur</h3>
+          <p className="text-red-500">{error || 'Impossible de charger les détails du ticket.'}</p>
+          <button
+            onClick={onClose}
+            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+          >
             Fermer
           </button>
         </div>
@@ -488,20 +241,29 @@ export function DigitalTicketModal({ bookingId, onClose }: DigitalTicketModalPro
     );
   }
 
+  // Suppression des déclarations en double des fonctions
+
+  // Rendu principal du composant
+  const trip = ticket.booking.trip;
+  const passengerDetails = ticket.booking.passenger_details || [];
+  
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-6 rounded-t-2xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <QrCode className="w-8 h-8" />
-              <div>
-                <h2 className="text-2xl font-bold">Ticket Numérique</h2>
-                <p className="text-emerald-50 text-sm">{ticket.ticket_reference}</p>
-              </div>
+        <div className="bg-emerald-600 text-white p-6 rounded-t-2xl">
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold">Ticket Numérique</h2>
+              <p className="text-emerald-100 text-sm">{ticket.ticket_reference || 'N/A'}</p>
             </div>
-            <button onClick={onClose} aria-label="Fermer" title="Fermer" className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg">
+            <button 
+              onClick={onClose} 
+              aria-label="Fermer" 
+              title="Fermer" 
+              className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg"
+            >
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -543,13 +305,19 @@ export function DigitalTicketModal({ bookingId, onClose }: DigitalTicketModalPro
                 {ticket.booking.trip.departure_city} → {ticket.booking.trip.arrival_city}
               </p>
               <p className="text-slate-600 text-sm mt-1">
-                Départ : {new Date(ticket.booking.trip.departure_time).toLocaleString('fr-FR')}
+                {new Date(trip.departure_time).toLocaleString('fr-FR', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </p>
             </div>
 
             <div className="border-t border-slate-200 pt-4">
               <p className="text-slate-600 text-sm mb-2">Passagers</p>
-              {ticket.booking.passenger_details.map((passenger, index) => (
+              {passengerDetails.map((passenger, index) => (
                 <div key={index} className="flex items-center space-x-2 mb-1">
                   <span className="bg-emerald-100 text-emerald-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
                     {index + 1}
@@ -605,33 +373,55 @@ export function DigitalTicketModal({ bookingId, onClose }: DigitalTicketModalPro
           {/* Actions */}
           <div className="grid grid-cols-3 gap-3">
             <button
-              onClick={downloadTicket}
+              onClick={() => handleDownloadTicket()}
               className="flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
             >
-              <span className="text-lg">📥</span>
-              <span className="text-sm font-medium">Télécharger</span>
+              <QrCode className="w-5 h-5" />
+              <span>Télécharger</span>
             </button>
 
             <button
-              onClick={resendEmail}
-              disabled={sendingEmail}
-              className="flex items-center justify-center space-x-2 px-4 py-3 border-2 border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition disabled:opacity-50"
+              onClick={() => handleResendEmail()}
+              disabled={sendingEmail || ticket.email_sent}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition ${
+                sendingEmail || ticket.email_sent
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              <span className="text-lg">📧</span>
-              <span className="text-sm font-medium">
-                {sendingEmail ? '...' : 'Email'}
-              </span>
+              {sendingEmail ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Envoi en cours...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  <span>{ticket?.email_sent ? 'Email envoyé' : 'Renvoyer par email'}</span>
+                </>
+              )}
             </button>
 
             <button
-              onClick={resendSMS}
-              disabled={sendingSMS}
-              className="flex items-center justify-center space-x-2 px-4 py-3 border-2 border-emerald-600 text-emerald-600 rounded-lg hover:bg-emerald-50 transition disabled:opacity-50"
+              onClick={() => handleResendSMS()}
+              disabled={sendingSMS || ticket.sms_sent}
+              className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition ${
+                sendingSMS || ticket.sms_sent
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
             >
-              <span className="text-lg">💬</span>
-              <span className="text-sm font-medium">
-                {sendingSMS ? '...' : 'SMS'}
-              </span>
+              {sendingSMS ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Envoi en cours...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  <span>{ticket?.sms_sent ? 'SMS envoyé' : 'Envoyer par SMS'}</span>
+                </>
+              )}
             </button>
           </div>
 

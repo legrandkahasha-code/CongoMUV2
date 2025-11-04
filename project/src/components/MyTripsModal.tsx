@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react';
-// Lightweight local icons (emoji)
-const Icon = ({ children, className }: { children: string; className?: string }) => (
-  <span className={className} aria-hidden>{children}</span>
-);
-const X = ({ className }: { className?: string }) => <Icon className={className}>✕</Icon>;
-const Ticket = ({ className }: { className?: string }) => <Icon className={className}>🎟</Icon>;
-const Calendar = ({ className }: { className?: string }) => <Icon className={className}>📅</Icon>;
-const Users = ({ className }: { className?: string }) => <Icon className={className}>👥</Icon>;
-const Clock = ({ className }: { className?: string }) => <Icon className={className}>⏱</Icon>;
 import { Booking } from '../types';
+import { MapPin as LocationMarkerIcon } from 'lucide-react';
 import { DigitalTicketModal } from './DigitalTicketModal';
 import { TripTrackingModal } from './TripTrackingModal';
+
+// Lightweight local icons (emoji)
+const Icon = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <span className={className} aria-hidden>{children}</span>
+);
+
+const X = ({ className = '' }: { className?: string }) => <Icon className={className}>✕</Icon>;
+const TicketIcon = ({ className = '' }: { className?: string }) => <Icon className={className}>🎟</Icon>;
+const CalendarIcon = ({ className = '' }: { className?: string }) => <Icon className={className}>📅</Icon>;
+const UsersIcon = ({ className = '' }: { className?: string }) => <Icon className={className}>👥</Icon>;
+const ClockIcon = ({ className = '' }: { className?: string }) => <Icon className={className}>⏱</Icon>;
 
 interface MyTripsModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
+export const MyTripsModal = ({ isOpen, onClose }: MyTripsModalProps): JSX.Element | null => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTicketModal, setShowTicketModal] = useState(false);
@@ -31,11 +34,13 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
 
   const loadBookings = async () => {
     try {
+      setLoading(true);
       // Charger les réservations depuis localStorage
-      const localBookings = JSON.parse(localStorage.getItem('demo_bookings') || '[]');
+      const demoBookings = JSON.parse(localStorage.getItem('demo_bookings') || '[]');
+      const payments = JSON.parse(localStorage.getItem('payments') || '[]');
       
       // Si pas de réservations locales, utiliser des données de démonstration par défaut
-      if (localBookings.length === 0) {
+      if (demoBookings.length === 0) {
         const today = new Date();
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -105,48 +110,80 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
           }
         ];
 
-        // Simuler un délai de chargement
-        setTimeout(() => {
-          setBookings(demoBookings);
-          setLoading(false);
-        }, 800);
+        // Enregistrer les données de démonstration
+        localStorage.setItem('demo_bookings', JSON.stringify(demoBookings));
+        setBookings(demoBookings);
+        setLoading(false);
       } else {
-        // Convertir les réservations locales au format attendu
-        const convertedBookings: Booking[] = localBookings.map((booking: any) => ({
-          id: booking.id,
-          booking_reference: booking.reference,
-          number_of_passengers: booking.number_of_passengers,
-          total_amount: booking.total_amount,
-          status: booking.status,
-          trip: {
-            id: booking.trip_id,
-            route_id: booking.trip_id,
-            departure_time: booking.trip.departure_time,
-            arrival_time: booking.trip.arrival_time,
-            vehicle_number: booking.trip.vehicle_number,
-            total_seats: 50,
-            available_seats: 45,
-            status: 'scheduled',
-            route: {
-              id: booking.trip_id,
-              operator_id: 'op-1',
-              transport_type_id: 1,
-              departure_city: booking.trip.departure_city,
-              arrival_city: booking.trip.arrival_city,
-              distance_km: 1000,
-              estimated_duration_minutes: 360,
-              base_price: booking.total_amount / booking.number_of_passengers,
-              is_active: true,
-              operator: { id: 1, name: booking.trip.operator_name || 'CongoMuv', type: 'transco', is_active: true }
-            }
+        // Mapper les réservations au format attendu
+        const convertedBookings: Booking[] = await Promise.all(demoBookings.map(async (booking: any) => {
+          // Trouver le paiement correspondant
+          const payment = payments.find((p: any) => p.bookingId === booking.id);
+          
+          // Créer un ticket par défaut pour les nouvelles réservations
+          if (!localStorage.getItem(`ticket_${booking.id}`)) {
+            const newTicket = {
+              id: `ticket-${booking.id}`,
+              ticket_reference: `TK-CM-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+              qr_code: '', // Le QR code sera généré dynamiquement
+              expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 jours
+              booking: {
+                booking_reference: booking.id,
+                trip: booking.trip || {
+                  departure_city: booking.departure_city || 'Ville de départ',
+                  arrival_city: booking.arrival_city || 'Ville d\'arrivée',
+                  departure_time: booking.departure_time || new Date().toISOString(),
+                  arrival_time: booking.arrival_time || new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+                  vehicle_number: `TC-${Math.floor(100 + Math.random() * 900)}`
+                },
+                passenger_details: booking.passenger_details || [{ full_name: 'Passager', age: 30 }],
+                total_amount: booking.total_amount || 0
+              },
+              email_sent: false,
+              sms_sent: false
+            };
+            localStorage.setItem(`ticket_${booking.id}`, JSON.stringify(newTicket));
           }
+          
+          return {
+            id: booking.id,
+            booking_reference: booking.id,
+            number_of_passengers: booking.passenger_details?.length || 1,
+            total_amount: booking.total_amount || 0,
+            status: payment?.status === 'completed' ? 'confirmed' : 'pending',
+            trip: {
+              id: booking.trip_id || `trip-${booking.id}`,
+              route_id: booking.trip_id || 'route-1',
+              departure_time: booking.trip?.departure_time || booking.departure_time || new Date().toISOString(),
+              arrival_time: booking.trip?.arrival_time || booking.arrival_time || new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
+              vehicle_number: booking.trip?.vehicle_number || `TC-${Math.floor(100 + Math.random() * 900)}`,
+              total_seats: 50,
+              available_seats: 45,
+              status: 'scheduled',
+              route: {
+                id: booking.trip_id || 'route-1',
+                operator_id: 'op-1',
+                transport_type_id: 1,
+                departure_city: booking.trip?.departure_city || booking.departure_city || 'Ville de départ',
+                arrival_city: booking.trip?.arrival_city || booking.arrival_city || 'Ville d\'arrivée',
+                distance_km: 1000,
+                estimated_duration_minutes: 360,
+                base_price: booking.total_amount / (booking.passenger_details?.length || 1),
+                is_active: true,
+                operator: { 
+                  id: 1, 
+                  name: booking.trip?.operator_name || 'CongoMuv', 
+                  type: 'transco', 
+                  is_active: true 
+                }
+              }
+            }
+          };
         }));
 
-        // Simuler un délai de chargement
-        setTimeout(() => {
-          setBookings(convertedBookings);
-          setLoading(false);
-        }, 500);
+        // Mettre à jour l'état avec les réservations converties
+        setBookings(convertedBookings);
+        setLoading(false);
       }
       
     } catch (err) {
@@ -177,7 +214,6 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
 
   if (!isOpen) return null;
 
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full my-8">
@@ -200,7 +236,7 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
             </div>
           ) : bookings.length === 0 ? (
             <div className="text-center py-12">
-              <Ticket className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <TicketIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-900 mb-2">
                 Aucun voyage
               </h3>
@@ -226,15 +262,15 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setSelectedBookingId(String(booking.id));
+                        onClick={() => {
+                          setSelectedBookingId(booking.id.toString());
                           setShowTicketModal(true);
                         }}
-                        className="px-3 py-1 text-xs rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                        title="Voir le ticket numérique"
+                        className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                        title="Voir le ticket"
                       >
-                        🎫 Ticket
+                        <TicketIcon className="w-4 h-4" />
+                        Ticket
                       </button>
                       <button
                         onClick={(e) => { 
@@ -245,7 +281,8 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                         className="px-3 py-1 text-xs rounded-lg border border-slate-300 hover:bg-slate-50"
                         title="Suivre en temps réel"
                       >
-                        📍 Suivre
+                        <LocationMarkerIcon className="w-4 h-4" />
+                        Suivre
                       </button>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(booking.status)}`}>
                         {getStatusText(booking.status)}
@@ -256,7 +293,7 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <p className="text-slate-600 mb-1">
-                        <Calendar className="w-4 h-4 inline mr-1" />
+                        <CalendarIcon className="w-4 h-4 text-slate-400" />
                         Départ
                       </p>
                       <p className="font-semibold text-slate-900">
@@ -266,7 +303,7 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
 
                     <div>
                       <p className="text-slate-600 mb-1">
-                        <Clock className="w-4 h-4 inline mr-1" />
+                        <ClockIcon className="w-4 h-4 text-slate-400" />
                         Heure
                       </p>
                       <p className="font-semibold text-slate-900">
@@ -279,7 +316,7 @@ export function MyTripsModal({ isOpen, onClose }: MyTripsModalProps) {
 
                     <div>
                       <p className="text-slate-600 mb-1">
-                        <Users className="w-4 h-4 inline mr-1" />
+                        <UsersIcon className="w-4 h-4 text-slate-400" />
                         Passagers
                       </p>
                       <p className="font-semibold text-slate-900">

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { CalendarIcon, Clock, MapPin, Bus, User, CreditCard, Info } from 'lucide-react';
+import { Clock, MapPin, User, CreditCard, Info } from 'lucide-react';
 import { TripFormProps, TripFormData } from './TripForm.types';
+import Label from '../ui/Label';
 
 // Local helpers to avoid external date-fns dependency
 const addDays = (date: Date | string, days: number): Date => {
@@ -24,7 +25,6 @@ const TripForm: React.FC<TripFormProps> = ({
   isSubmitting = false, 
   operators = [], 
   vehicles = [],
-  routes = []
 }) => {
   const [departureDate, setDepartureDate] = useState<Date>(
     initialData.departureDate ? new Date(initialData.departureDate) : new Date()
@@ -45,8 +45,8 @@ const TripForm: React.FC<TripFormProps> = ({
       departureTime: initialData.departureTime || '08:00',
       arrivalDate: initialData.arrivalDate || addDays(new Date(), 1),
       arrivalTime: initialData.arrivalTime || '10:00',
-      price: initialData.price || '',
-      availableSeats: initialData.availableSeats || '',
+      price: initialData.price ? Number(initialData.price) : undefined,
+      availableSeats: initialData.availableSeats ? Number(initialData.availableSeats) : undefined,
       status: initialData.status || 'scheduled',
       notes: initialData.notes || ''
     }
@@ -67,7 +67,7 @@ const TripForm: React.FC<TripFormProps> = ({
     : [];
 
   // Gestion de la soumission du formulaire
-  const handleFormSubmit = (data) => {
+  const handleFormSubmit = (data: any) => {
     const formattedData = {
       ...data,
       departureDateTime: `${formatDateInput(new Date(data.departureDate))}T${data.departureTime}:00`,
@@ -75,7 +75,7 @@ const TripForm: React.FC<TripFormProps> = ({
       price: parseFloat(data.price),
       availableSeats: parseInt(data.availableSeats, 10)
     };
-    
+
     onSubmit(formattedData);
   };
 
@@ -230,6 +230,24 @@ const TripForm: React.FC<TripFormProps> = ({
                 placeholder="Entrez le prix"
                 {...register('price', { required: 'Le prix est requis' })} 
               />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="availableSeats" className="block text-sm font-medium">Places disponibles *</label>
+              <input 
+                id="availableSeats" 
+                type="number" 
+                min="1" 
+                className="w-full px-3 py-2 border rounded" 
+                aria-label="Nombre de places disponibles"
+                placeholder="Entrez le nombre de places"
+                {...register('availableSeats', { required: 'Le nombre de places est requis' })} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Section Informations supplémentaires */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium flex items-center gap-2">
             <Info className="h-5 w-5" />
@@ -255,7 +273,7 @@ const TripForm: React.FC<TripFormProps> = ({
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 {...register('notes')}
                 placeholder="Informations supplémentaires sur le trajet..."
-                rows="3"
+                rows={3}
               />
             </div>
           </div>

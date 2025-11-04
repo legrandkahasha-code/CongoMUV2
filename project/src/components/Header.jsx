@@ -10,8 +10,27 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
+    try {
+      // Déconnexion de Supabase
+      await supabase.auth.signOut();
+      
+      // Effacer le stockage local et de session
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Supprimer tous les cookies
+      document.cookie.split(';').forEach(cookie => {
+        const [name] = cookie.trim().split('=');
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
+      });
+      
+      // Rediriger vers la page d'accueil
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      // En cas d'erreur, forcer quand même la redirection
+      window.location.href = '/';
+    }
   };
 
   // Ne pas afficher le header sur les pages d'administration et d'opérateur

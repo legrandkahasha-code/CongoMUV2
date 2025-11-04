@@ -16,9 +16,9 @@
   cursor: pointer;
   transition: all 0.2s ease;
   transform: translate(-50%, -50%);
-  left: var(--marker-left, 50%);
-  top: var(--marker-top, 50%);
-  z-index: var(--marker-zindex, 10);
+  left: 50%;
+  top: 50%;
+  z-index: 10;
 }
 
 .vehicle-marker:hover {

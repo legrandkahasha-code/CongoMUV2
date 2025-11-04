@@ -12,16 +12,33 @@
   top: 0;
   left: 0;
   height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  background: linear-gradient(90deg, #10b981, #0d9488); /* emerald-500 to teal-600 */
-  transition: transform 0.3s ease;
+  width: var(--width, 0);
+  background: linear-gradient(90deg, #10b981, #0d9488);
+  transition: width 0.3s ease;
+  border-radius: 9999px;
 }
 
 /* Appliquer la transformation d'échelle basée sur l'attribut data-revenue-scale */
-.revenue-bar[data-revenue-scale] {
-  transform: scaleX(attr(data-revenue-scale));
+/* Style pour la barre de revenu */
+.revenue-bar {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  border-radius: 9999px;
+  transition: width 0.5s ease-in-out;
 }
+
+/* Classes pour les largeurs dynamiques */
+.revenue-bar.w-10 { width: 10%; }
+.revenue-bar.w-20 { width: 20%; }
+.revenue-bar.w-30 { width: 30%; }
+.revenue-bar.w-40 { width: 40%; }
+.revenue-bar.w-50 { width: 50%; }
+.revenue-bar.w-60 { width: 60%; }
+.revenue-bar.w-70 { width: 70%; }
+.revenue-bar.w-80 { width: 80%; }
+.revenue-bar.w-90 { width: 90%; }
+.revenue-bar.w-100 { width: 100%; }
 
 .occupancy-container {
   position: relative;
@@ -38,23 +55,39 @@
   top: 0;
   left: 0;
   height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  width: var(--width, 0);
+  transition: width 0.3s ease;
   border-radius: 9999px;
 }
 
-/* Appliquer la largeur basée sur l'attribut data-occupancy-width */
-.occupancy-bar[data-occupancy-width] {
-  width: attr(data-occupancy-width %);
+/* Style pour la barre d'occupation */
+.occupancy-bar {
+  height: 100%;
+  width: 0;
+  border-radius: 9999px;
+  transition: width 0.5s ease-in-out;
 }
 
+/* Classes pour les largeurs dynamiques */
+.occupancy-bar.w-10 { width: 10%; }
+.occupancy-bar.w-20 { width: 20%; }
+.occupancy-bar.w-30 { width: 30%; }
+.occupancy-bar.w-40 { width: 40%; }
+.occupancy-bar.w-50 { width: 50%; }
+.occupancy-bar.w-60 { width: 60%; }
+.occupancy-bar.w-70 { width: 70%; }
+.occupancy-bar.w-80 { width: 80%; }
+.occupancy-bar.w-90 { width: 90%; }
+.occupancy-bar.w-100 { width: 100%; }
+
 .occupancy-bar.high {
-  background-color: #10b981; /* emerald-500 */
+  background-color: #10b981;
 }
 
 .occupancy-bar.medium {
-  background-color: #f59e0b; /* amber-500 */
+  background-color: #f59e0b;
 }
 
 .occupancy-bar.low {
-  background-color: #ef4444; /* red-500 */
+  background-color: #ef4444;
 }

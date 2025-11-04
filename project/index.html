@@ -1,13 +1,93 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Modern Professional Prototype</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- Gestion des couleurs de thème avec support cross-browser -->
+    <meta name="color-scheme" content="light dark" />
+    
+    <!-- Support PWA et applications mobiles -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Rétrocompatibilité avec iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <!-- Support Windows et anciens navigateurs -->
+    <meta name="msapplication-navbutton-color" content="#ffffff" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    
+    <!-- Gestion de la couleur du thème via JavaScript -->
+    <script>
+      (function() {
+        // Fonction pour définir la couleur du thème
+        function setThemeColor() {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const color = isDark ? '#1e293b' : '#ffffff';
+          document.documentElement.style.setProperty('--theme-color', color);
+          
+          // Mise à jour des balises meta pour la rétrocompatibilité
+          const themeMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeMeta) {
+            themeMeta.content = color;
+          } else {
+            const meta = document.createElement('meta');
+            meta.name = 'theme-color';
+            meta.content = color;
+            document.head.appendChild(meta);
+          }
+        }
+
+        // Définir la couleur au chargement
+        setThemeColor();
+        
+        // Écouter les changements de préférence de thème
+        window.matchMedia('(prefers-color-scheme: dark)')
+          .addEventListener('change', setThemeColor);
+
+        // Gestion des identifiants uniques
+        if (!window.crypto?.randomUUID) {
+          window.crypto = window.crypto || {};
+          window.crypto.randomUUID = function randomUUID() {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+              (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+          };
+        }
+      })();
+    </script>
+    
+    <!-- Préchargement des polices critiques -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
+    <meta name="description" content="CongoMuv - Votre solution de transport au Congo. Réservez vos billets de bus en ligne facilement et rapidement." />
+    <meta name="keywords" content="transport, bus, Congo, voyage, billets, réservation" />
+    <meta name="author" content="CongoMuv" />
+    <meta property="og:title" content="CongoMuv - Votre solution de transport au Congo" />
+    <meta property="og:description" content="Réservez vos billets de bus en ligne facilement et rapidement." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <title>CongoMuv - Votre solution de transport au Congo</title>
   </head>
-  <body>
+  <body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900 antialiased">
     <div id="root"></div>
+    <!-- Polyfill pour crypto.randomUUID -->
+    <script>
+    if (!window.crypto || !window.crypto.randomUUID) {
+      window.crypto = window.crypto || {};
+      window.crypto.randomUUID = function() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+    }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

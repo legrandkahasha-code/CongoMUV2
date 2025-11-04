@@ -135,10 +135,9 @@ export function ReportsAnalytics() {
                     {data.revenue.toLocaleString('fr-FR')} FC
                   </span>
                 </div>
-                <div className="revenue-container">
+                <div className="revenue-container w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                   <div
-                    className="revenue-bar"
-                    style={{ width: `${(data.revenue / 15000000) * 100}%` }}
+                    className={`revenue-bar h-full rounded-full w-${Math.min(100, Math.round((data.revenue / 15000000) * 100))}`}
                   />
                 </div>
               </div>
@@ -170,14 +169,13 @@ export function ReportsAnalytics() {
                     <div className="flex items-center space-x-2">
                       <div className="occupancy-container">
                         <div
-                          className={`occupancy-bar ${
+                          className={`occupancy-bar w-${Math.round(line.occupancy_rate / 10) * 10} ${
                             line.occupancy_rate >= 80
                               ? 'high'
                               : line.occupancy_rate >= 60
                               ? 'medium'
                               : 'low'
                           }`}
-                          style={{ width: `${line.occupancy_rate}%` }}
                         />
                       </div>
                       <span className="font-semibold text-slate-900">{line.occupancy_rate}%</span>

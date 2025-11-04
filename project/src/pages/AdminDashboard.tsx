@@ -208,13 +208,8 @@ export default function AdminDashboard(): JSX.Element {
                   <h3 className="text-xl font-bold">Trajets disponibles</h3>
                   <p className="text-sm text-gray-600 mt-1">Données de démonstration locales</p>
                 </div>
-                <button 
-                  onClick={() => setShowRouteModal(true)} 
-                  className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-                  aria-label="Ajouter un nouveau trajet"
-                >
-                  <FaPlus className="w-4 h-4" aria-hidden="true" /> 
-                  <span>Nouveau trajet</span>
+                <button onClick={() => setShowRouteModal(true)} className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2">
+                  <FaPlus className="w-4 h-4" /> Nouveau trajet
                 </button>
               </div>
 
@@ -238,20 +233,8 @@ export default function AdminDashboard(): JSX.Element {
                       <td className="py-3 px-4">{r.arrival_city}</td>
                       <td className="py-3 px-4 font-semibold text-blue-700">{r.base_price.toLocaleString()} FC</td>
                       <td className="py-3 px-4 text-right">
-                        <button 
-                          className="text-blue-600 mr-2" 
-                          aria-label={`Modifier le trajet ${r.departure_city} - ${r.arrival_city}`}
-                        >
-                          <FaEdit className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                        <button 
-                          onClick={() => deleteRoute(r.id)} 
-                          className="text-red-600"
-                          aria-label={`Supprimer le trajet ${r.departure_city} - ${r.arrival_city}`}
-                        >
-                          <FaTrash className="w-4 h-4 inline" aria-hidden="true" /> 
-                          <span>Supprimer</span>
-                        </button>
+                        <button className="text-blue-600 mr-2" title="Modifier"><FaEdit className="w-4 h-4" /></button>
+                        <button onClick={() => deleteRoute(r.id)} className="text-red-600"><FaTrash className="w-4 h-4 inline" /> Supprimer</button>
                       </td>
                     </tr>
                   ))}
@@ -269,13 +252,8 @@ export default function AdminDashboard(): JSX.Element {
                 <div>
                   <h3 className="text-xl font-bold">Voyages programmés</h3>
                 </div>
-                <button 
-                  onClick={() => setShowTripModal(true)} 
-                  className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-                  aria-label="Ajouter un nouveau voyage"
-                >
-                  <FaPlus className="w-4 h-4" aria-hidden="true" /> 
-                  <span>Nouveau voyage</span>
+                <button onClick={() => setShowTripModal(true)} className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2">
+                  <FaPlus className="w-4 h-4" /> Nouveau voyage
                 </button>
               </div>
               <table className="w-full">
@@ -298,18 +276,8 @@ export default function AdminDashboard(): JSX.Element {
                       <td className="py-3 px-4">{t.available_seats}</td>
                       <td className="py-3 px-4"><span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">{t.status || '-'}</span></td>
                       <td className="py-3 px-4 text-right">
-                        <button 
-                          className="text-blue-600 mr-2" 
-                          aria-label="Modifier le voyage"
-                        >
-                          <FaEdit className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                        <button 
-                          className="text-red-600" 
-                          aria-label="Supprimer le voyage"
-                        >
-                          <FaTrash className="w-4 h-4" aria-hidden="true" />
-                        </button>
+                        <button className="text-blue-600 mr-2" title="Modifier"><FaEdit className="w-4 h-4" /></button>
+                        <button className="text-red-600" title="Supprimer"><FaTrash className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -324,13 +292,8 @@ export default function AdminDashboard(): JSX.Element {
                 <div>
                   <h3 className="text-xl font-bold">Opérateurs de transport</h3>
                 </div>
-                <button 
-                  onClick={() => setShowOperatorModal(true)} 
-                  className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-                  aria-label="Ajouter un nouvel opérateur"
-                >
-                  <FaPlus className="w-4 h-4" aria-hidden="true" /> 
-                  <span>Nouvel opérateur</span>
+                <button onClick={() => setShowOperatorModal(true)} className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2">
+                  <FaPlus className="w-4 h-4" /> Nouvel opérateur
                 </button>
               </div>
 
@@ -391,18 +354,8 @@ export default function AdminDashboard(): JSX.Element {
                       <td className="py-3 px-4">{u.phone || '-'}</td>
                       <td className="py-3 px-4">{u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '-'}</td>
                       <td className="py-3 px-4 text-right">
-                        <button 
-                          className="text-blue-600 mr-2" 
-                          aria-label="Modifier le voyage"
-                        >
-                          <FaEdit className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                        <button 
-                          className="text-red-600" 
-                          aria-label="Supprimer le voyage"
-                        >
-                          <FaTrash className="w-4 h-4" aria-hidden="true" />
-                        </button>
+                        <button className="text-blue-600 mr-2" title="Modifier"><FaEdit className="w-4 h-4" /></button>
+                        <button className="text-red-600" title="Supprimer"><FaTrash className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -417,13 +370,8 @@ export default function AdminDashboard(): JSX.Element {
                 <div>
                   <h3 className="text-xl font-bold">Incidents et problèmes</h3>
                 </div>
-                <button 
-                  onClick={() => setShowIncidentModal(true)} 
-                  className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2"
-                  aria-label="Signaler un nouvel incident"
-                >
-                  <FaPlus className="w-4 h-4" aria-hidden="true" /> 
-                  <span>Signaler incident</span>
+                <button onClick={() => setShowIncidentModal(true)} className="bg-blue-700 text-white px-4 py-2 rounded-lg hover:bg-blue-800 flex items-center gap-2">
+                  <FaPlus className="w-4 h-4" /> Signaler incident
                 </button>
               </div>
 
@@ -447,18 +395,8 @@ export default function AdminDashboard(): JSX.Element {
                       <td className="py-3 px-4">{i.status || '-'}</td>
                       <td className="py-3 px-4">{i.location}</td>
                       <td className="py-3 px-4 text-right">
-                        <button 
-                          className="text-blue-600 mr-2" 
-                          aria-label="Modifier le voyage"
-                        >
-                          <FaEdit className="w-4 h-4" aria-hidden="true" />
-                        </button>
-                        <button 
-                          className="text-red-600" 
-                          aria-label="Supprimer le voyage"
-                        >
-                          <FaTrash className="w-4 h-4" aria-hidden="true" />
-                        </button>
+                        <button className="text-blue-600 mr-2" title="Modifier"><FaEdit className="w-4 h-4" /></button>
+                        <button className="text-red-600" title="Supprimer"><FaTrash className="w-4 h-4" /></button>
                       </td>
                     </tr>
                   ))}
@@ -482,7 +420,6 @@ export default function AdminDashboard(): JSX.Element {
           <div className="bg-white rounded-lg shadow-lg p-6 w-96">
             <h3 className="text-lg font-bold mb-4">Créer un nouveau trajet</h3>
             <form
-              aria-label="Formulaire de création de trajet"
               onSubmit={(e) => {
                 e.preventDefault();
                 const form = e.target as HTMLFormElement;
@@ -514,57 +451,50 @@ export default function AdminDashboard(): JSX.Element {
               }}
               className="space-y-4"
             >
-              <div className="mb-4">
-                <label htmlFor="departure_city" className="block text-sm font-medium mb-1">Ville de départ *</label>
-                <input 
+              <div>
+                <label htmlFor="departure_city" className="block text-sm font-medium mb-1">Ville de départ</label>
+                <input
+                  type="text"
                   id="departure_city"
-                  type="text" 
-                  name="departure_city" 
-                  className="w-full border rounded px-3 py-2" 
-                  required 
-                  aria-required="true"
+                  name="departure_city"
+                  required
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Entrez la ville de départ"
                 />
               </div>
-              <div className="mb-4">
-                <label htmlFor="arrival_city" className="block text-sm font-medium mb-1">Ville d'arrivée *</label>
-                <input 
+              <div>
+                <label htmlFor="arrival_city" className="block text-sm font-medium mb-1">Ville d'arrivée</label>
+                <input
+                  type="text"
                   id="arrival_city"
-                  type="text" 
-                  name="arrival_city" 
-                  className="w-full border rounded px-3 py-2" 
-                  required 
-                  aria-required="true"
+                  name="arrival_city"
+                  required
+                  className="w-full border rounded px-3 py-2"
                   placeholder="Entrez la ville d'arrivée"
                 />
               </div>
-              <div className="mb-4">
-                <label htmlFor="base_price" className="block text-sm font-medium mb-1">Prix de base (FC) *</label>
-                <input 
+              <div>
+                <label htmlFor="base_price" className="block text-sm font-medium mb-1">Prix de base</label>
+                <input
+                  type="number"
                   id="base_price"
-                  type="number" 
-                  name="base_price" 
-                  step="0.01" 
-                  min="0" 
-                  className="w-full border rounded px-3 py-2" 
-                  required 
-                  aria-required="true"
-                  placeholder="Entrez le prix en francs congolais"
+                  name="base_price"
+                  required
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Entrez le prix de base"
                 />
               </div>
-              <div className="flex justify-end space-x-2 mt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowRouteModal(false)} 
-                  className="px-4 py-2 border rounded"
-                  aria-label="Annuler la création du trajet"
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRouteModal(false)}
+                  className="px-3 py-2 border rounded"
                 >
                   Annuler
                 </button>
-                <button 
-                  type="submit" 
-                  className="bg-blue-700 text-white px-4 py-2 rounded"
-                  aria-label="Enregistrer le nouveau trajet"
+                <button
+                  type="submit"
+                  className="px-3 py-2 bg-blue-700 text-white rounded hover:bg-blue-800"
                 >
                   Enregistrer
                 </button>
@@ -627,22 +557,9 @@ export default function AdminDashboard(): JSX.Element {
                   <input id="trip-seats" name="available_seats" type="number" placeholder="Nombre de places" className="w-full px-3 py-2 border rounded" />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <button 
-                  type="button" 
-                  onClick={() => setShowTripModal(false)} 
-                  className="px-4 py-2 border rounded"
-                  aria-label="Annuler la création du voyage"
-                >
-                  Annuler
-                </button>
-                <button 
-                  type="submit" 
-                  className="bg-blue-700 text-white px-4 py-2 rounded"
-                  aria-label="Enregistrer le nouveau voyage"
-                >
-                  Enregistrer
-                </button>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowTripModal(false)} className="px-3 py-2 border rounded">Annuler</button>
+                <button type="submit" className="px-3 py-2 bg-blue-700 text-white rounded">Créer</button>
               </div>
             </form>
           </div>

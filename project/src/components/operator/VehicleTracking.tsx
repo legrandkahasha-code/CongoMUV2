@@ -147,18 +147,29 @@ export function VehicleTracking() {
               return (
                 <div
                   key={vehicle.vehicle_id}
-                  className={`vehicle-marker ${
-                    isSelected ? 'selected' : ''
-                  } ${vehicle.status === 'delayed' ? 'delayed' : ''} ${
-                    vehicle.status === 'arrived' ? 'arrived' : ''
-                  }`}
+                  className={`vehicle-marker ${isSelected ? 'selected' : ''} ${getStatusColor(vehicle.status)} ${vehicle.status === 'delayed' ? 'delayed' : ''} ${vehicle.status === 'arrived' ? 'arrived' : ''}`}
                   style={{
-                    // Styles dynamiques nécessaires pour le positionnement en temps réel
-                    '--marker-left': `${left}%`,
-                    '--marker-top': `${top}%`,
-                    '--marker-zindex': isSelected ? '20' : '10',
-                    '--vehicle-color': getStatusColor(vehicle.status).replace('bg-', '')
-                  } as React.CSSProperties}
+                    left: `${left}%`,
+                    top: `${top}%`,
+                    zIndex: isSelected ? 20 : 10,
+                    transform: 'translate(-50%, -50%)',
+                    transformOrigin: 'center',
+                    position: 'absolute',
+                    width: '24px',
+                    height: '24px',
+                    backgroundColor: getStatusColor(vehicle.status),
+                    border: '2px solid white',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
                   onClick={() => setSelectedVehicle(vehicle)}
                 >
                   {vehicle.vehicle_number.split('-')[1]}

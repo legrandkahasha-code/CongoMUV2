@@ -115,11 +115,7 @@ export function PaymentModal({ isOpen, bookingId, amount, onClose, onSuccess }: 
     setError('');
 
     try {
-      // Paiement local (stockage local, sans mention "demo")
-      const token = localStorage.getItem('app_jwt');
-      if (!token) {
-        throw new Error('Vous devez être connecté pour effectuer un paiement');
-      }
+      // Simulation du délai de traitement du paiement
       await new Promise(resolve => setTimeout(resolve, 1500));
       const paymentId = `PAY-${Date.now()}`;
       const transactionRef = `TXN-${Date.now()}`;

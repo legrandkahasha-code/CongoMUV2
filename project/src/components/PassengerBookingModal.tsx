@@ -119,13 +119,6 @@ export function PassengerBookingModal({ trip, onClose, onSuccess }: PassengerBoo
     setError('');
 
     try {
-      // Mode démonstration - Stockage local
-      const token = localStorage.getItem('app_jwt');
-
-      if (!token) {
-        throw new Error('Vous devez être connecté pour effectuer une réservation');
-      }
-
       // Simuler un délai de traitement
       await new Promise(resolve => setTimeout(resolve, 1000));
 

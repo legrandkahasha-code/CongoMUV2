@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/authContext';
+import { useAuth } from '../lib/authContext';
 import { LogOut } from 'lucide-react';
 import { 
   SupervisionPassengers,

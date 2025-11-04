@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Calendar, MapPin, Clock, Users } from 'lucide-react';
-import { mockTrips, mockOperators, mockVehicles, mockRoutes } from '../../data/mockTrips';
-import { Operator, Vehicle, Route } from '../trips/TripForm.types';
+import { mockTrips, mockVehicles, mockRoutes } from '../../data/mockTrips';
 
 interface Trip {
   id: string;
@@ -288,10 +287,11 @@ export function TripsManagement() {
               className="space-y-4"
             >
               <div>
-                <label className="block text-sm font-medium mb-1">Route</label>
+                <label htmlFor="route_id" className="block text-sm font-medium mb-1">Route</label>
                 <select
+                  id="route_id"
                   name="route_id"
-                  aria-label="Sélectionner un itinéraire"
+                  title="Sélectionner la route"
                   defaultValue={editingTrip?.routeId || mockRoutes[0].id}
                   className="w-full border rounded px-3 py-2"
                 >
@@ -303,34 +303,35 @@ export function TripsManagement() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Heure de départ</label>
+                <label htmlFor="departure_time" className="block text-sm font-medium mb-1">Heure de départ</label>
                 <input
+                  id="departure_time"
                   type="time"
                   name="departure_time"
+                  title="Heure de départ"
                   required
-                  aria-label="Heure de départ"
-                  placeholder="HH:MM"
                   defaultValue={editingTrip?.departureTime}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Heure d'arrivée</label>
+                <label htmlFor="arrival_time" className="block text-sm font-medium mb-1">Heure d'arrivée</label>
                 <input
+                  id="arrival_time"
                   type="time"
                   name="arrival_time"
+                  title="Heure d'arrivée"
                   required
-                  aria-label="Heure d'arrivée"
-                  placeholder="HH:MM"
                   defaultValue={editingTrip?.arrivalTime}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Véhicule</label>
+                <label htmlFor="vehicle_number" className="block text-sm font-medium mb-1">Véhicule</label>
                 <select
+                  id="vehicle_number"
                   name="vehicle_number"
-                  aria-label="Sélectionner un véhicule"
+                  title="Sélectionner le véhicule"
                   defaultValue={editingTrip?.vehicle_number}
                   className="w-full border rounded px-3 py-2"
                 >
@@ -342,41 +343,38 @@ export function TripsManagement() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre total de sièges</label>
+                <label htmlFor="total_seats" className="block text-sm font-medium mb-1">Nombre total de sièges</label>
                 <input
+                  id="total_seats"
                   type="number"
                   name="total_seats"
+                  title="Nombre total de sièges"
                   required
-                  aria-label="Nombre total de sièges"
-                  placeholder="Entrez le nombre total de sièges"
-                  min="1"
                   defaultValue={editingTrip?.total_seats}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Nombre de sièges disponibles</label>
+                <label htmlFor="available_seats" className="block text-sm font-medium mb-1">Nombre de sièges disponibles</label>
                 <input
+                  id="available_seats"
                   type="number"
                   name="available_seats"
+                  title="Nombre de sièges disponibles"
                   required
-                  aria-label="Nombre de sièges disponibles"
-                  placeholder="Entrez le nombre de sièges disponibles"
-                  min="0"
                   defaultValue={editingTrip?.available_seats}
                   className="w-full border rounded px-3 py-2"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Prix</label>
+                <label htmlFor="price" className="block text-sm font-medium mb-1">Prix</label>
                 <input
+                  id="price"
                   type="number"
                   step="0.01"
                   name="price"
+                  title="Prix"
                   required
-                  aria-label="Prix du trajet"
-                  placeholder="Entrez le prix du trajet"
-                  min="0"
                   defaultValue={editingTrip?.price}
                   className="w-full border rounded px-3 py-2"
                 />

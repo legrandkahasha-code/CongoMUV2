@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/lib/authContext';
+import { useAuth } from '../lib/authContext';
 
 // Supabase only: backend API removed
 
@@ -23,9 +23,19 @@ export default function LoginPage() {
       setError(null);
       
       const res = await signInWithPassword({ email, password });
-      if (res.error) throw new Error(res.error);
+      if (res.error) {
+        // En cas d'erreur, on vide les champs
+        setEmail('');
+        setPassword('');
+        throw new Error(res.error);
+      }
+      
       // Session complète: l'AuthProvider redirigera en fonction du rôle
       setStatus('✅ Connexion réussie ! Redirection...');
+      
+      // Vider les champs après une connexion réussie
+      setEmail('');
+      setPassword('');
     } catch (e: any) {
       setError(e?.message || 'Échec de la connexion');
     } finally {
@@ -35,9 +45,22 @@ export default function LoginPage() {
 
   // Ne jamais rediriger depuis cette page sans session: l'AuthProvider s'en charge après SIGNED_IN
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (canSubmitPassword) {
+      handlePasswordLogin();
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
+    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+      {/* Decorative background */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none -z-10">
+        <div className="absolute -top-10 -left-10 w-56 h-56 bg-blue-300 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-10 right-0 w-72 h-72 bg-cyan-300 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/3 left-1/2 w-40 h-40 bg-white rounded-full blur-2xl"></div>
+      </div>
+      <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mx-auto mb-3 text-xl" aria-hidden>
             🔐
@@ -49,45 +72,57 @@ export default function LoginPage() {
         {error && <div className="mb-3 p-3 rounded bg-red-100 text-red-700 text-sm">{error}</div>}
         {status && <div className="mb-3 p-3 rounded bg-blue-50 text-blue-700 text-sm">{status}</div>}
 
-        <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">Adresse email</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="nom@exemple.com"
-          disabled={sending}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 mb-4 disabled:opacity-60"
-        />
+        <form onSubmit={handleSubmit} autoComplete="off">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">Adresse email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="nom@exemple.com"
+              disabled={sending}
+              autoComplete="new-email"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 mb-4 disabled:opacity-60"
+            />
+          </div>
 
-        <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
-        <input
-          id="password"
-          type={showPassword ? 'text' : 'password'}
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          onKeyUp={(e) => setCapsOn((e as any).getModifierState && (e as any).getModifierState('CapsLock'))}
-          placeholder="Votre mot de passe"
-          disabled={sending}
-          className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 mb-4 disabled:opacity-60"
-        />
-        <div className="flex items-center justify-between -mt-3 mb-3">
-          <button type="button" onClick={() => setShowPassword(v => !v)} className="text-xs text-blue-700 hover:underline">
-            {showPassword ? 'Masquer' : 'Afficher'} le mot de passe
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyUp={(e) => setCapsOn((e as any).getModifierState && (e as any).getModifierState('CapsLock'))}
+              placeholder="Votre mot de passe"
+              disabled={sending}
+              autoComplete="new-password"
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-blue-600 mb-4 disabled:opacity-60"
+            />
+          </div>
+
+          <div className="flex items-center justify-between -mt-3 mb-3">
+            <button type="button" onClick={() => setShowPassword(v => !v)} className="text-xs text-blue-700 hover:underline">
+              {showPassword ? 'Masquer' : 'Afficher'} le mot de passe
+            </button>
+            {capsOn && <span className="text-xs text-amber-600">Verr. Maj activée</span>}
+          </div>
+          
+          {!emailValid && email.length > 0 && (
+            <p className="text-xs text-red-600 mb-2">Adresse email invalide.</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={!canSubmitPassword}
+            className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-800 hover:to-blue-700 transition disabled:opacity-50"
+          >
+            {sending ? 'Connexion...' : 'Se connecter'}
           </button>
-          {capsOn && <span className="text-xs text-amber-600">Verr. Maj activée</span>}
-        </div>
-        {!emailValid && email.length > 0 && (
-          <p className="text-xs text-red-600 mb-2">Adresse email invalide.</p>
-        )}
-
-        <button
-          onClick={handlePasswordLogin}
-          disabled={!canSubmitPassword}
-          className="w-full bg-gradient-to-r from-blue-700 to-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-800 hover:to-blue-700 transition disabled:opacity-50"
-        >
-          {sending ? 'Connexion...' : 'Se connecter'}
-        </button>
+        </form>
         <div className="text-center mt-4 text-sm">
           <a href="#/signup" className="text-blue-700 hover:underline">Pas de compte ? Inscription</a>
         </div>

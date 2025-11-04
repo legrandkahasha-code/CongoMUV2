@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, MapPin, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import './TripTrackingModal.css';
 
 interface TripTrackingModalProps {
   bookingId: string;
@@ -149,7 +150,70 @@ export function TripTrackingModal({ bookingId, onClose }: TripTrackingModalProps
       const trackingData = demoTracking[bookingId];
       if (trackingData) {
         setTracking(trackingData);
-      } else {
+        setLoading(false);
+        return;
+      }
+
+      // Fallback: construire un suivi basique depuis demo_bookings
+      try {
+        const demoBookings = JSON.parse(localStorage.getItem('demo_bookings') || '[]');
+        const booking = demoBookings.find((b: any) => String(b.id) === String(bookingId));
+        if (booking) {
+          const departure_time = booking?.trip?.departure_time || booking?.departure_time || new Date().toISOString();
+          const estimated_arrival = booking?.trip?.arrival_time || new Date(new Date(departure_time).getTime() + 4 * 60 * 60 * 1000).toISOString();
+          const vehicle_number = booking?.trip?.vehicle_number || 'N/A';
+          const driver_name = 'Chauffeur assigné';
+          const departure_city = booking?.trip?.route?.departure_city || booking?.trip?.departure_city || booking?.departure_city || 'Ville de départ';
+          const arrival_city = booking?.trip?.route?.arrival_city || booking?.trip?.arrival_city || booking?.arrival_city || "Ville d'arrivée";
+
+          const depDate = new Date(departure_time);
+          const now = new Date();
+          const isFuture = depDate.getTime() > now.getTime();
+
+          const fallback: TripTracking = {
+            booking_reference: String(bookingId),
+            trip_info: {
+              departure_city,
+              arrival_city,
+              departure_time,
+              estimated_arrival,
+              vehicle_number,
+              driver_name,
+            },
+            current_status: isFuture ? 'Voyage programmé' : 'En transit',
+            current_location: isFuture ? departure_city : `En route vers ${arrival_city}`,
+            progress_percentage: isFuture ? 0 : 50,
+            steps: [
+              {
+                id: '1',
+                status: isFuture ? 'pending' : 'completed',
+                title: 'Embarquement',
+                description: 'Présentation des billets et embarquement',
+                location: departure_city,
+                time: isFuture ? undefined : depDate.toLocaleTimeString('fr-FR'),
+              },
+              {
+                id: '2',
+                status: isFuture ? 'pending' : 'current',
+                title: isFuture ? 'Départ prévu' : 'En transit',
+                description: isFuture ? 'Départ à venir' : 'Voyage en cours',
+                location: isFuture ? departure_city : `Vers ${arrival_city}`,
+              },
+              {
+                id: '3',
+                status: 'pending',
+                title: 'Arrivée prévue',
+                description: 'Arrivée à destination',
+                location: arrival_city,
+              },
+            ],
+            last_update: new Date().toISOString(),
+          };
+          setTracking(fallback);
+        } else {
+          setError('Informations de suivi non disponibles');
+        }
+      } catch {
         setError('Informations de suivi non disponibles');
       }
       setLoading(false);
@@ -253,9 +317,11 @@ export function TripTrackingModal({ bookingId, onClose }: TripTrackingModalProps
                 <span>Progression du voyage</span>
                 <span>{tracking.progress_percentage}%</span>
               </div>
-              <div className="w-full bg-slate-200 rounded-full h-3">
+              <div 
+                className="progress-bar-container w-full h-3 bg-slate-200 rounded-full overflow-hidden"
+              >
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 h-3 rounded-full transition-all duration-500"
+                  className="progress-bar-fill h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-in-out"
                   style={{ width: `${tracking.progress_percentage}%` }}
                 ></div>
               </div>
